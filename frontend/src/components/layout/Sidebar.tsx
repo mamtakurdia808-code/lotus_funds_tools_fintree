@@ -9,6 +9,8 @@ import {
   Divider,
   Stack,
   IconButton,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
@@ -23,8 +25,11 @@ interface SidebarProps {
 }
 
 const drawerWidth = 220;
+const HEADER_HEIGHT = 64;
 
 const Sidebar = ({ open = false, onClose }: SidebarProps) => {
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up("sm"));
   const location = useLocation();
 
   const isActive = (path: string) => location.pathname === path;
@@ -51,43 +56,73 @@ const Sidebar = ({ open = false, onClose }: SidebarProps) => {
           alignItems: "center",
           justifyContent: "space-between",
           px: 2,
-          pt: 1.5,
+          pt: 2,
+          pb: 1,
+          minHeight: 56,
         }}
       >
-        <Typography sx={{ fontWeight: 600, fontSize: 18, color: "white" }}>
+        <Typography 
+          sx={{ 
+            fontWeight: 600, 
+            fontSize: 18, 
+            color: "white",
+            display: "block",
+          }}
+        >
           Fintree
         </Typography>
         <IconButton
           onClick={onClose}
           sx={{
             color: "white",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
           size="small"
         >
-          <CloseIcon />
+          <CloseIcon sx={{ fontSize: 24 }} />
         </IconButton>
       </Box>
 
-      <Box>
-        <List sx={{ mt: 1, mb: 2, display: { xs: "none", sm: "block" } }}>
-          <ListItemButton
-            component={Link}
-            to="/"
-            sx={{
-              color: "inherit",
-              py: 2,
-              "&:hover": { backgroundColor: "transparent" },
-            }}
-            disableRipple
-            onClick={onClose}
-          >
-            <Typography sx={{ fontWeight: 600, fontSize: 18 }}>
-              Fintree
-            </Typography>
-          </ListItemButton>
-        </List>
+      {/* Desktop Fintree header aligned with header bar */}
+      <List
+        sx={{
+          display: { xs: "none", sm: "block" },
+          mt: 0,
+          mb: 0,
+          p: 0, // remove default List padding so divider aligns pixel-perfect with header bottom
+        }}
+      >
+        <ListItemButton
+          component={Link}
+          to="/"
+          sx={{
+            color: "inherit",
+            height: HEADER_HEIGHT,
+            minHeight: HEADER_HEIGHT,
+            py: 0,
+            px: 2,
+            "&:hover": { backgroundColor: "transparent" },
+          }}
+          disableRipple
+          onClick={onClose}
+        >
+          <Typography sx={{ fontWeight: 600, fontSize: 18, lineHeight: 1 }}>
+            Fintree
+          </Typography>
+        </ListItemButton>
+      </List>
 
-        <Divider sx={{ borderColor: "rgba(255,255,255,0.2)", mx: 1.5 }} />
+      <Box>
+        <Divider 
+          sx={{ 
+            borderColor: "rgba(255,255,255,0.2)", 
+            mx: 1.5,
+            mt: { xs: 1, sm: 0 },
+            display: { xs: "block", sm: "block" },
+          }} 
+        />
 
         <List sx={{ mt: 2 }}>
           <ListItemButton
@@ -175,16 +210,20 @@ const Sidebar = ({ open = false, onClose }: SidebarProps) => {
       {/* Mobile temporary drawer */}
       <Drawer
         variant="temporary"
-        open={open}
+        open={!isDesktop && open}
         onClose={onClose}
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: "block", sm: "none" },
+          zIndex: (theme) => theme.zIndex.drawer + 2, // Ensure drawer is above header
           [`& .MuiDrawer-paper`]: {
             width: drawerWidth,
             backgroundColor: "#4F6CF8",
             color: "white",
             borderRight: "none",
+            // Drawer slides from top of screen, covering the header
+            top: 0,
+            height: "100vh",
           },
         }}
       >
@@ -202,6 +241,8 @@ const Sidebar = ({ open = false, onClose }: SidebarProps) => {
             backgroundColor: "#4F6CF8",
             color: "white",
             borderRight: "none",
+            top: 0,
+            height: "100vh",
           },
         }}
         open
