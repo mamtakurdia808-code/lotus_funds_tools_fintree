@@ -7,6 +7,7 @@ interface HeaderProps {
 }
 
 const Header = ({ onMenuClick }: HeaderProps) => {
+  const HEADER_HEIGHT = 64;
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -23,17 +24,20 @@ const Header = ({ onMenuClick }: HeaderProps) => {
       elevation={0}
       sx={{
         backgroundColor: "#22c55e",
-        minHeight: 40,
+        height: HEADER_HEIGHT,
+        minHeight: HEADER_HEIGHT,
         justifyContent: "center",
-        // shift header to the right so it doesn't sit under the sidebar (desktop only)
-        ml: { xs: 0, sm: "220px" },
         width: { xs: "100%", sm: "calc(100% - 220px)" },
+        ml: { xs: 0, sm: "220px" },
+        zIndex: (theme) => theme.zIndex.drawer + 1,
       }}
     >
       <Toolbar
         sx={{
-          minHeight: 40,
+          height: HEADER_HEIGHT,
+          minHeight: HEADER_HEIGHT,
           px: 2,
+          py: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -52,12 +56,25 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             <MenuIcon sx={{ fontSize: 24 }} />
           </IconButton>
 
-          {/* Page title - visible on all breakpoints now */}
+          {/* Mobile page title */}
           <Typography
             sx={{
               fontWeight: 700,
-              fontSize: 16,
-              display: "block",
+              fontSize: 18,
+              lineHeight: 1,
+              display: { xs: "block", sm: "none" },
+            }}
+          >
+            Recommendations
+          </Typography>
+
+          {/* Desktop page title */}
+          <Typography
+            sx={{
+              fontWeight: 700,
+              fontSize: 18,
+              lineHeight: 1,
+              display: { xs: "none", sm: "block" },
             }}
           >
             Recommendations
@@ -90,3 +107,4 @@ const Header = ({ onMenuClick }: HeaderProps) => {
 };
 
 export default Header;
+
