@@ -231,6 +231,10 @@ const NewRecommendation = () => {
                       backgroundColor: "#3b51c5",
                     },
                   },
+                  "&.Mui-disabled": {
+                    color: "#9ca3af",
+                    backgroundColor: "#e5e7eb",
+                  },
                 },
               }}
             >
@@ -238,7 +242,12 @@ const NewRecommendation = () => {
               <ToggleButton value="BTST">BTST</ToggleButton>
               <ToggleButton value="STBT">STBT</ToggleButton>
               <ToggleButton value="Short Term">Short Term</ToggleButton>
-              <ToggleButton value="Long Term">Long Term</ToggleButton>
+              <ToggleButton
+                value="Long Term"
+                disabled={["Futures", "Option Call", "Option Put"].includes(callType)}
+              >
+                Long Term
+              </ToggleButton>
             </ToggleButtonGroup>
           </Box>
         </Box>
