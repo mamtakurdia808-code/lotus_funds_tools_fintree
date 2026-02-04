@@ -17,9 +17,6 @@ const AppRoutes = () => {
         <Route path="/performance" element={<Performance />} />
       </Route>
 
-     
-      
-
       {/* Pages without sidebar (optional) */}
      {/* <Route path="*" element={<NotFound />} /> */}
     </Routes> 
