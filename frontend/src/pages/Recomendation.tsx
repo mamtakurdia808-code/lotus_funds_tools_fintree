@@ -249,21 +249,21 @@ const NewRecommendation = () => {
   // Temporary
   const [wasValidated, setWasValidated] = useState(false);
   const validateAndPublish = (event) => {
-  event.preventDefault();
-  setWasValidated(true);
+    event.preventDefault();
+    setWasValidated(true);
 
-  // Check standard inputs via form
-  const form = event.currentTarget.closest('form');
-  const isFormValid = form.checkValidity();
-  
-  // Check our Radio manually
-  const isRadioValid = radioValue !== "";
+    // Check standard inputs via form
+    const form = event.currentTarget.closest('form');
+    const isFormValid = form.checkValidity();
 
-  if (isFormValid && isRadioValid) {
-    handlePublish();
-    setWasValidated(false); 
-  }
-};
+    // Check our Radio manually
+    const isRadioValid = radioValue !== "";
+
+    if (isFormValid && isRadioValid) {
+      handlePublish();
+      setWasValidated(false);
+    }
+  };
 
   return (
     <Box
@@ -278,8 +278,8 @@ const NewRecommendation = () => {
     >
       {/* LEFT PANEL */}
       <Paper
-      component= "form"
-      noValidate
+        component="form"
+        noValidate
         sx={{
           p: { xs: 1.5, sm: 2 },
           backgroundColor: panelBg,
@@ -291,17 +291,17 @@ const NewRecommendation = () => {
           minHeight: "100%",
           gap: 1.5,
           "& .MuiTextField-root": {
-      "& .MuiOutlinedInput-root": {
-        ...(wasValidated && {
-          "& input:invalid": {
-            "& ~ .MuiOutlinedInput-notchedOutline": {
-              borderColor: "red !important",
-              borderWidth: "2px",
+            "& .MuiOutlinedInput-root": {
+              ...(wasValidated && {
+                "& input:invalid": {
+                  "& ~ .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "red !important",
+                    borderWidth: "2px",
+                  }
+                }
+              })
             }
           }
-        })
-      }
-    }
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
@@ -584,50 +584,50 @@ const NewRecommendation = () => {
         >
           {/* TOP PART: Holding Period */}
           <Box sx={{ width: "100%" }}>
-            <FormControl 
-  fullWidth 
-  error={wasValidated && !radioValue && tradeType !== "Intraday"}
-  sx={{ mt: 1 }}
->
-            <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, mb: 0.5 }}>Holding Period</Typography>
+            <FormControl
+              fullWidth
+              error={wasValidated && !radioValue && tradeType !== "Intraday"}
+              sx={{ mt: 1 }}
+            >
+              <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, mb: 0.5 }}>Holding Period</Typography>
 
-            {/* Intraday Logic */}
-            {tradeType === "Intraday" && (
-              <RadioGroup row value="0">
-                <FormControlLabel value="0" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>0</Typography>} checked={true} />
-              </RadioGroup>
-            )}
+              {/* Intraday Logic */}
+              {tradeType === "Intraday" && (
+                <RadioGroup row value="0">
+                  <FormControlLabel value="0" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>0</Typography>} checked={true} />
+                </RadioGroup>
+              )}
 
-            {/* BTST/STBT Logic */}
-            {(tradeType === "BTST" || tradeType === "STBT") && (
-              <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
-                <FormControlLabel value="0" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>0</Typography>} />
-                <FormControlLabel value="1" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>1</Typography>} />
-              </RadioGroup>
-            )}
+              {/* BTST/STBT Logic */}
+              {(tradeType === "BTST" || tradeType === "STBT") && (
+                <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
+                  <FormControlLabel value="0" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>0</Typography>} />
+                  <FormControlLabel value="1" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>1</Typography>} />
+                </RadioGroup>
+              )}
 
-            {/* Short Term Logic */}
-            {tradeType === "Short Term" && (
-              <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
-                <FormControlLabel value="7 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 7 Days</Typography>} />
-                <FormControlLabel value="30 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 30 Days</Typography>} />
-                <FormControlLabel value="90 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 90 Days</Typography>} />
-              </RadioGroup>
-            )}
+              {/* Short Term Logic */}
+              {tradeType === "Short Term" && (
+                <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
+                  <FormControlLabel value="7 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 7 Days</Typography>} />
+                  <FormControlLabel value="30 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 30 Days</Typography>} />
+                  <FormControlLabel value="90 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 90 Days</Typography>} />
+                </RadioGroup>
+              )}
 
-            {/* Long Term Logic */}
-            {tradeType === "Long Term" && (
-              <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
-                <FormControlLabel value="6 Months" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 6 Months</Typography>} />
-                <FormControlLabel value="1 Year" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 1 Year</Typography>} />
-                <FormControlLabel value="5 Years" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 5 Years</Typography>} />
-              </RadioGroup>
-            )}
-            {/* This shows the red text below the radios if empty */}
-  {wasValidated && !radioValue && tradeType !== "Intraday" && (
-      <FormHelperText sx={{ fontSize: '0.6rem', mt: 0 }}>Please select a holding period</FormHelperText>
-    )}
-</FormControl>
+              {/* Long Term Logic */}
+              {tradeType === "Long Term" && (
+                <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
+                  <FormControlLabel value="6 Months" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 6 Months</Typography>} />
+                  <FormControlLabel value="1 Year" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 1 Year</Typography>} />
+                  <FormControlLabel value="5 Years" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 5 Years</Typography>} />
+                </RadioGroup>
+              )}
+              {/* This shows the red text below the radios if empty */}
+              {wasValidated && !radioValue && tradeType !== "Intraday" && (
+                <FormHelperText sx={{ fontSize: '0.6rem', mt: 0 }}>Please select a holding period</FormHelperText>
+              )}
+            </FormControl>
           </Box>
 
           {/* BOTTOM PART: Rationale (Now appears under Holding Period) */}

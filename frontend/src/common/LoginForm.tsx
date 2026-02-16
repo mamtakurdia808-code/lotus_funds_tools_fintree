@@ -1,13 +1,13 @@
 import React, { useState } from "react";
-import { 
-  Box, 
-  Typography, 
-  TextField, 
-  Button, 
-  MenuItem, 
-  FormControl, 
-  InputLabel, 
-  IconButton, 
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  IconButton,
   InputAdornment,
   Select
 } from "@mui/material";
@@ -18,7 +18,13 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+
+
 const LoginForm: React.FC = () => {
+
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -37,6 +43,8 @@ const LoginForm: React.FC = () => {
 
   // Fixed the event type here
   const handleSelectChange = (e: SelectChangeEvent<string>) => {
+
+
     const val = e.target.value;
     if (val === "Other") {
       setIsOther(true);
@@ -48,10 +56,29 @@ const LoginForm: React.FC = () => {
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage(`Login successful for ${formData.username}!`);
+    setMessage("");
+
+    try {
+      const res = await axios.post("http://localhost:5000/api/login", {
+        username: formData.username,
+        password: formData.password,
+      });
+
+      // store token
+      localStorage.setItem("token", res.data.token);
+
+      // redirect to recommendations
+      navigate("/recommendations");
+
+    } catch (err: any) {
+      setMessage(
+        err.response?.data?.message || "Invalid credentials"
+      );
+    }
   };
+
 
   const inputStyles = {
     mb: 2,
@@ -63,9 +90,9 @@ const LoginForm: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", background: "#F4F7FE", p: 2 }}>
-      <Box 
-        component="form" 
-        onSubmit={handleSubmit} 
+      <Box
+        component="form"
+        onSubmit={handleSubmit}
         sx={{ width: "100%", maxWidth: 400, bgcolor: "#ffffff", p: 4, borderRadius: 4, boxShadow: "0 15px 35px rgba(0,0,0,0.1)" }}
       >
         <Typography variant="h4" sx={{ color: "#4F6CF8", textAlign: "center", mb: 3, fontWeight: 700 }}>
@@ -73,8 +100,8 @@ const LoginForm: React.FC = () => {
         </Typography>
 
         <TextField name="username" placeholder="Username" value={formData.username} onChange={handleChange} fullWidth required sx={inputStyles} />
-        
-        <TextField name="email" type="email" placeholder="Email ID" value={formData.email} onChange={handleChange} fullWidth required sx={inputStyles} />
+
+        {/* <TextField name="email" type="email" placeholder="Email ID" value={formData.email} onChange={handleChange} fullWidth required sx={inputStyles} />*/}
 
         <TextField
           name="password"
