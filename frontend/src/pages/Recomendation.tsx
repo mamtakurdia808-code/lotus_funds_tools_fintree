@@ -193,24 +193,41 @@ const NewRecommendation = () => {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const DATA_SOURCE = "/data.json";
+  const DATA_SOURCE =
+    import.meta.env.VITE_API_URL + "/api/research/calls/my";
 
   useEffect(() => {
     const fetchRecommendations = async () => {
       try {
         setLoading(true);
-        const response = await fetch(DATA_SOURCE);
+
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(DATA_SOURCE, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Unauthorized or failed request");
+        }
+
         const data = await response.json();
-        // Handle both single object and array responses
+
         setRecommendations(Array.isArray(data) ? data : [data]);
+
       } catch (error) {
         console.error("Failed to fetch recommendations:", error);
       } finally {
         setLoading(false);
       }
     };
+
     fetchRecommendations();
   }, []);
+
 
   // 1. EXIT FUNCTION (Removes the item from the list)
   const handleExit = (id: string) => {
