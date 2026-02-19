@@ -16,6 +16,7 @@ import AdminApproval from "../pages_admin/AdminApproval";
 import AdminRecommendations from "../pages_admin/AdminRecommendations";
 import AdminDashboard from "../pages_admin/AdminDashboard";
 import LoginForm from "../common/LoginForm";
+import BrokerRegistration from "../Registration_pages/BrokerRegistration";
 // import NotFound from "../pages/NotFound";
 
 const AppRoutes = () => {
@@ -65,7 +66,14 @@ const AppRoutes = () => {
         <Route path="recommendations" element={<AdminRecommendations />} />
         <Route path="approval" element={<AdminApproval />} />
       </Route>
+      
+      {/* Registration Pages */}
 
+      <Route path="/registration" element={<RegistrationPage />} />
+      <Route path="/registration/broker" element={<BrokerRegistration />} />
+
+      
+    
 
 
 
