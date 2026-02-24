@@ -689,11 +689,16 @@ const NewRecommendation = () => {
 
             <Autocomplete
               freeSolo
-              open={open}
               options={matches}
               inputValue={inputValue}
               onInputChange={handleInputChange}
               onKeyDown={handleKeyDown}
+              onChange={(_, newValue) => {
+                if (typeof newValue === "string" && newValue) {
+                  setDirectValue(newValue);
+                }
+              }}
+              isOptionEqualToValue={(option, value) => option === value}
               sx={{
                 flexGrow: 1,
                 zIndex: 1,
@@ -701,8 +706,8 @@ const NewRecommendation = () => {
               }}
               renderInput={(params) => (
                 <TextField
-                  required
                   {...params}
+                  required
                   size="small"
                   placeholder={inputValue ? "" : "Script Name/Symbol"}
                   variant="outlined"
