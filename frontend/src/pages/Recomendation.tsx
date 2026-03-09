@@ -28,8 +28,13 @@ import {
 } from "../assets/UnderlyingStudy";
 import type { StudyOption } from "../assets/UnderlyingStudy";
 import axios from "axios";
+import React from "react";
 const BUY_COLOR = "#22c55e";
 const SELL_COLOR = "#ef4444";
+
+
+const MemoRecommendationsPanel = React.memo(RecommendationsPanel);
+
 
 const getActionStyles = (current: "BUY" | "SELL", button: "BUY" | "SELL") => {
   const isActive = current === button;
@@ -297,16 +302,23 @@ const NewRecommendation = () => {
   };
 
 
+  const handleToggle = useCallback(
+    (field: keyof RecommendationForm) => {
+      dispatch({ type: "SET_FIELD", field, value: !form[field] });
+    },
+    [form]
+  );
 
-  const handleToggle = (field: keyof RecommendationForm) => {
-    dispatch({ type: "SET_FIELD", field, value: !form[field] });
-  };
+  const handlePriceChange = useCallback(
+    (field: keyof RecommendationForm) =>
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        if (val.includes("-")) return;
 
-  const handlePriceChange = (field: keyof RecommendationForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    if (val.includes("-")) return;
-    dispatch({ type: "SET_FIELD", field, value: val });
-  };
+        dispatch({ type: "SET_FIELD", field, value: val });
+      },
+    []
+  );
 
   // hooks 
   const expiryDates = useExpiryDates(
@@ -1309,7 +1321,7 @@ const NewRecommendation = () => {
 
       </Paper>
 
-      <RecommendationsPanel
+      <MemoRecommendationsPanel
         loading={loading}
         recommendations={recommendations}
         onModify={handleModify}
