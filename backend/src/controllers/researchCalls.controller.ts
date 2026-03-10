@@ -138,6 +138,48 @@ RETURNING id, created_at;
     }
 };
 
+
+/* =========================================================
+   CREATE RESEARCH CALL  (POST /api/research/performance)
+   ========================================================= */
+export const getResearchPerformance = async (req: AuthRequest, res: Response) => {
+    try {
+
+        const query = `
+      SELECT
+          rc.created_at AS date_time,
+          rc.action,
+          rc.exchange_type AS exchange,
+          rc.call_type AS type,
+          rc.trade_type AS category,
+          rc.display_name AS instrument,
+          rc.symbol,
+          rc.expiry_date AS expiry,
+          rc.entry_price AS entry,
+          '--' AS exit,
+          rc.status,
+          NULL AS profit_loss,
+          u.name AS researcher_name
+
+      FROM research_calls rc
+      JOIN users u ON u.id = rc.ra_user_id
+
+      WHERE rc.is_latest = true
+
+      ORDER BY rc.created_at DESC
+    `;
+
+        const { rows } = await pool.query(query);
+
+        res.json(rows);
+
+    } catch (err) {
+        console.error("PERFORMANCE API ERROR:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+
 /* =========================================================
    GET MY CALLS  (GET /api/research/calls/my)
    ========================================================= */
@@ -216,7 +258,6 @@ export const getResearchCalls = async (req: AuthRequest, res: Response) => {
         return res.status(500).json({ message: "Server Error" });
     }
 };
-
 
 /* =========================================================
    GET PUBLISHED CALLS (GET /api/research/calls/published)
