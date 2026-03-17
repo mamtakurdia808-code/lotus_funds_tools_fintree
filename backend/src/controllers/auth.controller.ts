@@ -50,16 +50,28 @@ export const login = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "Invalid username or password" });
         }
 
-        // 5️⃣ Generate JWT
+        // Normalize role
+        const normalizedRole =
+            user.role === "RESEARCH_ANALYST" ? "RA" : user.role;
+
+        // Generate JWT
         const token = jwt.sign(
             {
                 id: user.id,
-                role: user.role,
+                role: normalizedRole,
                 source
             },
             process.env.JWT_SECRET as string,
             { expiresIn: "1d" }
         );
+
+        // Response
+        res.json({
+            message: "Login successful",
+            token,
+            role: normalizedRole,
+            username: user.username
+        });
 
         res.json({
             message: "Login successful",

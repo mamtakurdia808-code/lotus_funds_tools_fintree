@@ -22,23 +22,21 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const LoginForm: React.FC = () => {
-  const roles = ["Broker", "Research Analyst"];
+
   const navigate = useNavigate();
 
+
+
+
+  const [showPassword, setShowPassword] = useState(false);
+
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     username: "",
     password: "",
-    role: "",
   });
-
-  const [showPassword, setShowPassword] = useState(false);
-  const [isOther, setIsOther] = useState(false);
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const API_URL = import.meta.env.VITE_API_URL;
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -46,16 +44,7 @@ const LoginForm: React.FC = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (e: SelectChangeEvent<string>) => {
-    const val = e.target.value;
 
-    if (val === "Other") {
-      setIsOther(true);
-      setFormData((prev) => ({ ...prev, role: "" }));
-    } else {
-      setFormData((prev) => ({ ...prev, role: val }));
-    }
-  };
 
   const handleClickShowPassword = () =>
     setShowPassword((show) => !show);
@@ -64,6 +53,8 @@ const LoginForm: React.FC = () => {
     e.preventDefault();
     setMessage("");
     setLoading(true);
+
+    const API_URL = import.meta.env.VITE_API_URL;
 
     try {
       const res = await axios.post(
@@ -79,11 +70,14 @@ const LoginForm: React.FC = () => {
       localStorage.setItem("token", token);
       localStorage.setItem("username", res.data.username);
 
-      // Role-based redirect
-      if (role === "Admin") {
-        navigate("/dashboard");
+      localStorage.setItem("role", role);
+      console.log("LOGIN:", res.data);
+
+      if (role === "RA") {
+        navigate("/");
       } else {
-        navigate("/recommendations");
+        setMessage("Use company login for this account");
+        localStorage.clear();
       }
 
     } catch (err: any) {
@@ -176,51 +170,7 @@ const LoginForm: React.FC = () => {
           }}
         />
 
-        {!isOther ? (
-          <FormControl fullWidth required sx={{ mb: 2 }}>
-            <InputLabel id="role-label">Role</InputLabel>
-            <Select
-              labelId="role-label"
-              value={formData.role}
-              label="Role"
-              onChange={handleSelectChange}
-              sx={{
-                borderRadius: 2,
-                backgroundColor: "#F8FBFF",
-              }}
-            >
-              {roles.map((r) => (
-                <MenuItem key={r} value={r}>
-                  {r}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        ) : (
-          <TextField
-            name="role"
-            placeholder="Enter Role"
-            value={formData.role}
-            onChange={handleChange}
-            fullWidth
-            required
-            autoFocus
-            sx={inputStyles}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setIsOther(false)}
-                    size="small"
-                    title="Back to list"
-                  >
-                    <RestartAltIcon fontSize="small" />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-        )}
+
 
         <Button
           type="submit"

@@ -1,19 +1,23 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
+
+const roleRoutes: Record<string, string> = {
+    ADMIN: "/admin",
+    EMPLOYEE: "/automation",
+    RA: "/",
+    CLIENT: "/client",
+};
 
 const RoleRouter = () => {
     const role = localStorage.getItem("role");
+    const token = localStorage.getItem("token");
 
-    if (!role) return <Navigate to="/login" replace />;
+    if (!token || !role) {
+        return <Navigate to="/login" replace />;
+    }
 
-    if (role === "ADMIN") return <Navigate to="/admin" replace />;
+    const path = roleRoutes[role];
 
-    if (role === "EMPLOYEE") return <Navigate to="/automation" replace />;
-
-    if (role === "RA") return <Navigate to="/" replace />;
-
-    if (role === "CLIENT") return <Navigate to="/client" replace />;
-
-    return <Navigate to="/login" replace />;
+    return path ? <Navigate to={path} replace /> : <Navigate to="/login" replace />;
 };
 
 export default RoleRouter;
