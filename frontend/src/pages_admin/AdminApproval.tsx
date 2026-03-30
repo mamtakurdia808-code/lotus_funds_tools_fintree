@@ -57,6 +57,7 @@ const AdminApproval = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmType, setConfirmType] = useState<"approve" | "reject" | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
   const navigate = useNavigate();
 
   /* ================= LOAD DATA ================= */
@@ -71,7 +72,7 @@ const AdminApproval = () => {
         const data = await response.json();
 
         const formatted = data.map((item: any) => ({
-          id: item.id,
+           id: item.user_id || item.id,
           name: `${item.first_name || ""} ${item.surname || ""}`,
           phone: item.mobile || "",
 
@@ -155,44 +156,61 @@ const AdminApproval = () => {
 
   /* ================= APPROVE ================= */
 
-  const handleApprove = async (id: string) => {
+const handleApprove = async (id: string) => {
+  try {
+    console.log("Calling API...");
 
+    const res = await fetch(
+      "http://localhost:3000/admin/approve-user",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: id,
+        }),
+      }
+    );
+
+    console.log("Response received");
+
+    // ✅ SAFE PARSE (VERY IMPORTANT)
+    const text = await res.text();
+
+    let data;
     try {
+      data = JSON.parse(text);
+    } catch {
+      console.error("Invalid JSON:", text);
+      alert("Server error");
+      return;
+    }
 
-      const res = await fetch(
-        `http://localhost:3000/api/registration/approve/${id}`,
-        { method: "PUT" }
+    if (res.ok) {
+      alert("User Approved & Email Sent ✅");
+
+      // ✅ UPDATE UI (IMPORTANT)
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === id ? { ...r, status: "Approved" } : r
+        )
       );
 
-      const data = await res.json();
-
-      if (res.ok) {
-
-        alert("User Approved Successfully");
-
-        setRows((prev) =>
-          prev.map((r) =>
-            r.id === id ? { ...r, status: "Approved" } : r
-          )
-        );
-
-        setSelectedRA(null);
-
-      } else {
-
-        alert(data.message || "Failed to approve");
-      }
-
-    } catch (error) {
-      console.error(error);
+    } else {
+      alert(data.message || "Failed to approve");
     }
-  };
+
+  } catch (error) {
+    console.error("FETCH ERROR:", error);
+  }
+};
 
   /* ================= EDIT ================= */
 
-const handleEdit = (id: string) => {
-  navigate(`/admin/edit-ra/${id}`);
-};
+  const handleEdit = (id: string) => {
+    navigate(`/admin/edit-ra/${id}`);
+  };
 
   /* ================= REJECT ================= */
 
@@ -294,7 +312,7 @@ const handleEdit = (id: string) => {
 
             {paginatedRows.map((row) => (
 
-              <TableRow key={row.id}>
+              <TableRow key={row.id || Math.random()}>
 
                 <TableCell>{row.name}</TableCell>
                 <TableCell>{row.phone}</TableCell>
@@ -412,14 +430,14 @@ const handleEdit = (id: string) => {
             >
               Reject
             </Button>
-             <Button
-    variant="contained"
-    color="warning"
-    fullWidth
-    onClick={() => handleEdit(selectedRA.id)}
-  >
-    Edit
-  </Button>
+            <Button
+              variant="contained"
+              color="warning"
+              fullWidth
+              onClick={() => handleEdit(selectedRA.id)}
+            >
+              Edit
+            </Button>
 
           </Box>
 
