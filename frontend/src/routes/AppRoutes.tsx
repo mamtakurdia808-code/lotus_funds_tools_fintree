@@ -153,11 +153,11 @@ s      {/* --- 4. Admin Layout (ADMIN ONLY) --- */}
         <Route path="*" element={<ClientNotFound />} />
       </Route>
 
-      {/* Catch-all for 404s */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+     {/* New Password Route MUST be above wildcard */}
+<Route path="/set-password" element={<NewPassword />} />
 
-      {/*NewPassword Route*/}
-      <Route path="setpassword" element={<NewPassword/>}/>
+{/* Catch-all should ALWAYS be LAST */}
+<Route path="*" element={<Navigate to="/" replace />} />
       
     </Routes>
   );
