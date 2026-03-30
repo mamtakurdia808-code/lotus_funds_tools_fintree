@@ -36,6 +36,9 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import { ExceltoJSONTool } from "../tools/ExceltoJSONtool";
 import LoginFormAdmin from "../common/LoginFormAdmin";
 
+// NewPasswordSet Route
+import NewPassword from "../common/NewPassword";
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -150,8 +153,12 @@ const AppRoutes = () => {
         <Route path="*" element={<ClientNotFound />} />
       </Route>
 
-      {/* Catch-all for 404s */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+     {/* New Password Route MUST be above wildcard */}
+<Route path="/set-password" element={<NewPassword />} />
+
+{/* Catch-all should ALWAYS be LAST */}
+<Route path="*" element={<Navigate to="/" replace />} />
+      
     </Routes>
   );
 }

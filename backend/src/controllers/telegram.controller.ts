@@ -1,160 +1,164 @@
-import axios from "axios";
-import { Request, Response } from "express";
+// telegram.controller.ts
+import { Response } from "express";
 import { pool } from "../db";
+import { AuthRequest } from "../middlewares/auth.middleware";
+import { RecommendationPayload, sendMessageSplit } from "../bot";
+import { bot } from "../bot";
 
-/* TELEGRAM BOT TOKEN */
+/* ─── FORMAT MESSAGE ─────────────────────────────────────────────────── */
+function formatRecommendationMessage(data: RecommendationPayload): string {
+  let message = `📊 *New Recommendation*\n
+*Action:* ${data.action}
+*Symbol:* ${data.symbol}
+*Type:* ${data.callType}
+*Trade:* ${data.tradeType}\n`;
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-
-/* FUNCTION TO SEND MESSAGE */
-
-async function sendMessage(chatId: string | number, message: string) {
-  const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-
-  try {
-    const response = await axios.post(url, {
-      chat_id: chatId,
-      text: message,
-    });
-
-    return response.data;
-  } catch (error: any) {
-    console.error("❌ Telegram API Error:", error?.response?.data || error?.message);
-    throw error;
+  // ✅ Entry
+  if (data.entryLow && data.entryUpper) {
+    message += `\n*Entry Range:* ${data.entryLow} - ${data.entryUpper}`;
+  } else {
+    message += `\n*Entry:* ${data.entry}`;
   }
+
+  // ✅ Targets
+  message += `\n*Target 1:* ${data.target}`;
+  if (data.target2) message += `\n*Target 2:* ${data.target2}`;
+  if (data.target3) message += `\n*Target 3:* ${data.target3}`;
+
+  // ✅ Stop Loss
+  message += `\n*Stop Loss:* ${data.stopLoss}`;
+  if (data.stopLoss2) message += `\n*SL 2:* ${data.stopLoss2}`;
+  if (data.stopLoss3) message += `\n*SL 3:* ${data.stopLoss3}`;
+
+  // ✅ Other
+  message += `\n\n*Rationale:* ${data.rationale}`;
+  message += `\n*Holding:* ${data.holding}`;
+
+  message += `\n\n#StockMarket #Trading`;
+
+  return message;
 }
 
-/* FORMAT MESSAGE */
-
-type RecommendationPayload = {
-  ra_user_id: number | string;
-  action: string;
-  symbol: string;
-  callType: string;
-  tradeType: string;
-  entry: number | string;
-  target: number | string;
-  stopLoss: number | string;
-  rationale: string;
-  holding: string;
-};
-
-function formatRecommendationMessage(data: RecommendationPayload) {
-  return `
-📊 New Recommendation
-
-Action: ${data.action}
-Symbol: ${data.symbol}
-Type: ${data.callType}
-Trade: ${data.tradeType}
-
-Entry: ${data.entry}
-Target: ${data.target}
-Stop Loss: ${data.stopLoss}
-
-Rationale: ${data.rationale}
-Holding: ${data.holding}
-
-#StockMarket #Trading
-`;
-}
-
-/* MAIN CONTROLLER */
-
-export const sendTelegram = async (req: Request, res: Response) => {
+/* ─── MAIN CONTROLLER ───────────────────────────────────────────────── */
+export const sendTelegram = async (req: AuthRequest, res: Response) => {
   try {
     const data = req.body as RecommendationPayload;
+    const raUserId = req.user?.id ?? data?.ra_user_id;
 
-    console.log("📥 Incoming Data:", data);
+    if (!raUserId) return res.status(400).json({ error: "ra_user_id missing" });
 
-    if (!BOT_TOKEN) {
-      return res.status(500).json({
-        error: "TELEGRAM_BOT_TOKEN is missing in environment",
-      });
-    }
-
-    if (!data?.ra_user_id) {
-      return res.status(400).json({
-        error: "ra_user_id is required",
-      });
-    }
-
-    /* FORMAT MESSAGE */
     const message = formatRecommendationMessage(data);
 
-    /* 1️⃣ SAVE MESSAGE */
+    // 1️⃣ Save message to DB
+await pool.query(
+  `INSERT INTO telegram_messages
+   (ra_user_id, message_text, action, symbol, call_type, trade_type,
+    entry_price, entry_low, entry_upper,
+    target_price, target_price_2, target_price_3,
+    stop_loss, stop_loss_2, stop_loss_3,
+    rationale, holding_period)
+   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+  [
+    raUserId,
+    message,
+    data.action,
+    data.symbol,
+    data.callType,
+    data.tradeType,
 
-    await pool.query(
-      `INSERT INTO telegram_messages
-      (ra_user_id, message_text, action, symbol, call_type, trade_type, entry_price, target_price, stop_loss, rationale, holding_period)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-      [
-        data.ra_user_id,
-        message,
-        data.action,
-        data.symbol,
-        data.callType,
-        data.tradeType,
-        data.entry,
-        data.target,
-        data.stopLoss,
-        data.rationale,
-        data.holding,
-      ]
-    );
+    data.entry,
+    data.entryLow || null,
+    data.entryUpper || null,
 
+    data.target,
+    data.target2 || null,
+    data.target3 || null,
+
+    data.stopLoss,
+    data.stopLoss2 || null,
+    data.stopLoss3 || null,
+
+    data.rationale,
+    data.holding,
+  ]
+);
     console.log("✅ Message saved to DB");
 
-    /* 2️⃣ GET TELEGRAM USERS */
+// ✅ Store user IDs in variable
+let chatIds: number[] = [];
 
-    const users = await pool.query(
-      "SELECT telegram_user_id FROM telegram_users WHERE user_id = $1",
-      [data.ra_user_id]
-    );
+const users = await pool.query(
+  "SELECT telegram_user_id FROM telegram_users WHERE telegram_user_id IS NOT NULL"
+);
 
-    console.log("👥 Users from DB:", users.rows);
+chatIds = users.rows
+  .map((u: { telegram_user_id: string }) => Number(u.telegram_user_id.trim()))
+  .filter(Boolean);
 
-    const chatIds = users.rows.map((user: { telegram_user_id: string | number }) => user.telegram_user_id);
 
-    if (chatIds.length === 0) {
-      return res.status(400).json({
-        error: "No Telegram users found for this user_id",
-      });
-    }
-
-    /* 3️⃣ SEND MESSAGE */
-
-    const failedChatIds: Array<string | number> = [];
-    for (const id of chatIds) {
-      try {
-        const result = await sendMessage(id, message);
-        console.log("✅ Sent to:", id, result);
-      } catch (err) {
-        failedChatIds.push(id);
-        console.error("❌ Failed for:", id, err);
-      }
-    }
-
-    if (failedChatIds.length === chatIds.length) {
-      return res.status(502).json({
-        error: "Telegram API rejected all recipients",
-        failedChatIds,
-      });
+    // 3️⃣ Send messages only to valid users
+    for (const chatId of chatIds) {
+      await sendMessageSplit(chatId, message);
     }
 
     return res.json({
       success: true,
-      message: "Telegram message sent",
-      sentCount: chatIds.length - failedChatIds.length,
-      failedCount: failedChatIds.length,
-      failedChatIds,
+      total: chatIds.length,
+      sent: chatIds.length,
+      tip: "Messages saved to DB and sent to active users",
     });
 
-  } catch (err) {
-    console.error("🔥 Server Error:", err);
+  } catch (err: any) {
+    console.error("🔥 Failed to send Telegram message:", err);
+    return res.status(500).json({ error: "Failed to send message", detail: err?.message });
+  }
+};
 
-    return res.status(500).json({
-      error: "Failed to send telegram message",
+/* ─── VERIFY & SAVE TELEGRAM USER ───────────────────────────── */
+
+export const verifyTelegramUser = async (req: AuthRequest, res: Response) => {
+  try {
+    const { telegram_user_id, telegram_client_name } = req.body;
+    const userId = req.user?.id;
+
+    if (!telegram_user_id) {
+      return res.status(400).json({ error: "Telegram ID is required" });
+    }
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // 🔥 STEP 1: VERIFY by sending test message
+    try {
+      await bot.sendMessage(
+        telegram_user_id,
+        "✅ Verification successful! Your Telegram is connected."
+      );
+    } catch (err: any) {
+      return res.status(400).json({
+        error: "Invalid Telegram ID OR user has not started the bot",
+      });
+    }
+
+    // 🔥 STEP 2: SAVE TO DB
+    await pool.query(
+      `INSERT INTO telegram_users (user_id, telegram_user_id, telegram_client_name)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (telegram_user_id) DO UPDATE 
+       SET telegram_client_name = EXCLUDED.telegram_client_name`,
+      [userId, telegram_user_id, telegram_client_name || null]
+    );
+
+    console.log("✅ Telegram user verified & saved");
+
+    return res.json({
+      success: true,
+      message: "Telegram user verified and saved",
     });
+
+  } catch (err: any) {
+    console.error("🔥 Verification failed:", err);
+    return res.status(500).json({ error: "Verification failed" });
   }
 };

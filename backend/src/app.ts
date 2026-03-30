@@ -5,6 +5,8 @@ import authRoutes from "./routes/auth.routes";
 //import debugRoutes from "./routes/debug.routes";
 import brokerRoutes from "./routes/broker.routes";
 import registrationRoutes from "./routes/registration.routes";
+import telegramRoutes from "./routes/telegram.routes";
+import adminRoutes from "./routes/admin.routes";
 import path from "path";
 
 
@@ -31,6 +33,8 @@ app.use(cors({
 
 app.use(express.json());
 
+console.log("🔥 Admin route import:", adminRoutes);
+
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/api", authRoutes);
 app.use("/api", researchRoutes);
@@ -39,6 +43,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/broker", brokerRoutes);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use("/api/registration", registrationRoutes);
+app.use("/api", telegramRoutes);
+app.use("/admin", adminRoutes);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "OK" });
