@@ -42,6 +42,10 @@ import NewPassword from "../common/NewPassword";
 const AppRoutes = () => {
   return (
     <Routes>
+
+           {/* New Password Route MUST be above wildcard */}
+<Route path="/set-password" element={<NewPassword />} /> 
+
       {/* --- Auth & Public Routes --- */}
       <Route path="/login" element={<LoginForm />} />
       <Route path="/login-admin" element={<LoginFormAdmin />} />
@@ -152,9 +156,6 @@ const AppRoutes = () => {
         <Route path="performance" element={<ClientPerformance />} />
         <Route path="*" element={<ClientNotFound />} />
       </Route>
-
-     {/* New Password Route MUST be above wildcard */}
-<Route path="/set-password" element={<NewPassword />} />
 
 {/* Catch-all should ALWAYS be LAST */}
 <Route path="*" element={<Navigate to="/" replace />} />
