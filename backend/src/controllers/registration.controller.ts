@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { pool } from "../db";
 
+import bcrypt from "bcrypt";
+import crypto from "crypto";
+
 /* ================= GET ALL REGISTRATIONS ================= */
 
 export const getAllRegistrations = async (req: Request, res: Response) => {
@@ -38,7 +41,7 @@ export const getAllRegistrations = async (req: Request, res: Response) => {
 
 export const registerRA = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = null;
 
     if (!userId) {
       return res.status(401).json({
@@ -192,36 +195,71 @@ export const registerRA = async (req: AuthRequest, res: Response) => {
 
 /* ================= APPROVE REGISTRATION ================= */
 
-export const approveRegistration = async (req: Request, res: Response) => {
-  try {
 
+
+export const approveRegistration = async (req: Request, res: Response) => {
+  const client = await pool.connect();
+
+  try {
     const { id } = req.params;
 
-    const result = await pool.query(
-      `UPDATE ra_details
-       SET status='approved',
-           rejection_reason=NULL
-       WHERE id=$1
-       RETURNING id,status`,
+    await client.query("BEGIN");
+
+    // 1. Get RA details
+    const raRes = await client.query(
+      `SELECT email FROM ra_details WHERE id = $1`,
       [id]
     );
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({
-        message: "Registration not found"
-      });
+    if (raRes.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "RA not found" });
     }
 
+    const email = raRes.rows[0].email;
+
+    // 2. Generate username & password
+    const username = `ra_${Math.random().toString(36).substring(2, 8)}`;
+    const rawPassword = crypto.randomBytes(4).toString("hex");
+
+    // 3. Hash password
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+    // 4. Create user
+    const userRes = await client.query(
+      `INSERT INTO users (username, password_hash, role, status)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
+      [username, hashedPassword, "RESEARCH_ANALYST", "ACTIVE"]
+    );
+
+    const userId = userRes.rows[0].id;
+
+    // 5. Update RA
+    await client.query(
+      `UPDATE ra_details
+       SET status = 'approved',
+           user_id = $1,
+           rejection_reason = NULL
+       WHERE id = $2`,
+      [userId, id]
+    );
+
+    await client.query("COMMIT");
+
+    // 6. Return credentials (TEMP - later send email)
     res.status(200).json({
-      message: "Registration approved successfully",
-      data: result.rows[0]
+      message: "RA approved & account created",
+      username,
+      password: rawPassword
     });
 
   } catch (error) {
-    console.error("Approve error:", error);
-    res.status(500).json({
-      message: "Server error"
-    });
+    await client.query("ROLLBACK");
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  } finally {
+    client.release();
   }
 };
 

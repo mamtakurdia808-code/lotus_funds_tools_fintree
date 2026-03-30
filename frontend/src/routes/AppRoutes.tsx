@@ -54,7 +54,7 @@ const AppRoutes = () => {
       {/* --- 1. Main Dashboard Layout (EMPLOYEE + ADMIN) --- */}
       <Route
         element={
-          <ProtectedRoute allowedRoles={["ADMIN", "RESEARCH_ANALYST"]}>
+          <ProtectedRoute allowedRoles={["RESEARCH_ANALYST"]}>
             <AppLayout />
           </ProtectedRoute>
         }
@@ -118,7 +118,7 @@ const AppRoutes = () => {
 
 
 
-s      {/* --- 4. Admin Layout (ADMIN ONLY) --- */}
+      s      {/* --- 4. Admin Layout (ADMIN ONLY) --- */}
       <Route
         path="/admin"
         element={
@@ -131,7 +131,7 @@ s      {/* --- 4. Admin Layout (ADMIN ONLY) --- */}
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="recommendations" element={<AdminRecommendations />} />
         <Route path="approval" element={<AdminApproval />} />
-        <Route path="edit-ra/:id" element={<EditRA />} /> 
+        <Route path="edit-ra/:id" element={<EditRA />} />
       </Route>
 
       {/* --- 5. Client Layout (CLIENT ONLY) --- */}

@@ -190,9 +190,9 @@ const AdminApproval = () => {
 
   /* ================= EDIT ================= */
 
-const handleEdit = (id: string) => {
-  navigate(`/admin/edit-ra/${id}`);
-};
+  const handleEdit = (id: string) => {
+    navigate(`/admin/edit-ra/${id}`);
+  };
 
   /* ================= REJECT ================= */
 
@@ -412,14 +412,14 @@ const handleEdit = (id: string) => {
             >
               Reject
             </Button>
-             <Button
-    variant="contained"
-    color="warning"
-    fullWidth
-    onClick={() => handleEdit(selectedRA.id)}
-  >
-    Edit
-  </Button>
+            <Button
+              variant="contained"
+              color="warning"
+              fullWidth
+              onClick={() => handleEdit(selectedRA.id)}
+            >
+              Edit
+            </Button>
 
           </Box>
 

@@ -5,7 +5,7 @@ import authRoutes from "./routes/auth.routes";
 //import debugRoutes from "./routes/debug.routes";
 import brokerRoutes from "./routes/broker.routes";
 import registrationRoutes from "./routes/registration.routes";
-import path from "path"; 
+import path from "path";
 
 
 const app = express();
@@ -25,6 +25,10 @@ app.use(cors({
   },
   credentials: true,
 }));
+
+
+
+
 app.use(express.json());
 
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
