@@ -9,7 +9,7 @@ import registrationRoutes from "./routes/registration.routes";
 // import adminRoutes from "./routes/admin.routes";
 import path from "path";
 import telegramRoutes from "./routes/telegram.routes";
-import { initTelegram } from "./telegramClient";
+//import { initTelegram } from "./telegramClient";
 
 const app = express();
 
@@ -43,7 +43,7 @@ app.use("/api", researchRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/broker", brokerRoutes);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-// app.use("/api/registration", registrationRoutes);
+app.use("/api/registration", registrationRoutes);
 // app.use("/api", telegramRoutes);
 // app.use("/api/telegram", telegramRoutes);
 app.use("/api", telegramRoutes);
@@ -60,7 +60,7 @@ app.use("/api/telegram", telegramRoutes);
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
-  await initTelegram();
+  //await initTelegram();
 
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);

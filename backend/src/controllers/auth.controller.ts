@@ -53,6 +53,7 @@ export const login = async (req: Request, res: Response) => {
 
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid username or password" });
+
     }
 
     const token = jwt.sign(
@@ -134,8 +135,8 @@ export const sendOtp = async (req: Request, res: Response) => {
 /* ================= VERIFY OTP ================= */
 
 export const verifyOtp = async (req: Request, res: Response) => {
-    console.log("🔥 VERIFY OTP HIT"); 
-    
+  console.log("🔥 VERIFY OTP HIT");
+
   try {
     const { token, otp } = req.body;
 
@@ -169,11 +170,11 @@ export const verifyOtp = async (req: Request, res: Response) => {
     console.error(error);
     res.status(500).json({ message: "Server error" });
   }
-  
+
 };
 
 export const approveUser = async (req: Request, res: Response) => {
-    console.log("Approve API HIT");
+  console.log("Approve API HIT");
   try {
     const { userId } = req.body;
 
@@ -216,7 +217,7 @@ export const approveUser = async (req: Request, res: Response) => {
           ra.user_id,
           `${ra.first_name} ${ra.surname}`,
           ra.email,
-         `${ra.first_name.toLowerCase()}${ra.surname.toLowerCase()}`, // username = email
+          `${ra.first_name.toLowerCase()}${ra.surname.toLowerCase()}`, // username = email
           "RA",
           "inactive"
         ]
