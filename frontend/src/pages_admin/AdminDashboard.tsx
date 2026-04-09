@@ -78,13 +78,13 @@ const AdminDashboard = () => {
     const load = async () => {
       try {
         const response = await fetch(
-          "http://localhost:3000/api/registration/all-registrations"
+          "http://localhost:3000/api/registration/all-registrations-active-users"
         );
         const data = await response.json();
 
 
         const formatted: AdminRow[] = data.map((item: any) => ({
-          id: item.id,
+          id: item.user_id || item.id,
           name: `${item.first_name || ""} ${item.surname || ""}`.trim(),
           phone: item.mobile || "",
 
@@ -96,12 +96,9 @@ const AdminDashboard = () => {
           nism: item.nism_certificate,
           cheque: item.cancelled_cheque,
 
-          telegram: item.telegram_client_name || "",
           telegram_id: item.telegram_user_id
             ? String(item.telegram_user_id)
-            : item.telegram_id
-              ? String(item.telegram_id)
-              : "",
+            : "",
 
           status: item.status || "Pending",
           rejectionReason: item.rejection_reason || "",
