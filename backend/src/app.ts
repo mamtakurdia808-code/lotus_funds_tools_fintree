@@ -51,13 +51,13 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use("/api/registration", registrationRoutes);
 // app.use("/api", telegramRoutes);
 // app.use("/api/telegram", telegramRoutes);
-app.use("/api", telegramRoutes);
-app.use("/api/telegram", telegramRoutes);
+//app.use("/api", telegramRoutes);
+//app.use("/api/telegram", telegramRoutes);
 
 // app.use("/admin", adminRoutes);
 //app.use("/api", telegramRoutes);
 app.use("/admin", adminRoutes);
-app.use("/api/telegram", telegramRoutes);
+//app.use("/api/telegram", telegramRoutes);
 
 // app.get("/api/health", (_req, res) => {
 //   res.json({ status: "OK" });
@@ -68,7 +68,7 @@ app.use("/api/telegram", telegramRoutes);
 
 // async function startServer() {
 //   await initTelegram();
-  //await initTelegram();
+//await initTelegram();
 
 //   app.listen(PORT, () => {
 //     console.log(`🚀 Server running on port ${PORT}`);
