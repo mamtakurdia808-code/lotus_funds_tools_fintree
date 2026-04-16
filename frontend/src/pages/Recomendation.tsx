@@ -279,33 +279,27 @@ const NewRecommendation = () => {
 
         // 📤 Send Telegram notification after successful creation
         try {
-          await axios.post(
+         await axios.post(
   import.meta.env.VITE_API_URL + "/api/telegram/send",
   {
-    ra_user_id: res.data?.id || res.data?.data?.ra_user_id,
+    userId: res.data?.telegram_user_id, // or correct mapped field
 
-    action: form.action,
-    symbol: finalDisplayName,
-    callType: form.callType,
-    tradeType: form.tradeType,
+    message: `📢 ${form.action} ${finalDisplayName}
 
-    // ✅ MAIN
-    entry: form.entry,
-    target: form.target,
-    stopLoss: form.stopLoss,
+Type: ${form.callType} | ${form.tradeType}
 
-    // ✅ ADD THESE (IMPORTANT)
-    entryLow: form.rangeEnabled ? form.entryLow : null,
-    entryUpper: form.rangeEnabled ? form.entryUpper : null,
+📊 Entry: ${form.entry}
+🎯 Target: ${form.target}
+🛑 StopLoss: ${form.stopLoss}
 
-    target2: form.secondaryTargetEnabled ? form.target2 : null,
-    target3: form.secondaryTargetEnabled ? form.target3 : null,
+${form.rangeEnabled ? `📉 Entry Range: ${form.entryLow} - ${form.entryUpper}` : ""}
 
-    stopLoss2: form.stopLoss2Enabled ? form.stopLoss2 : null,
-    stopLoss3: form.stopLoss2Enabled ? form.stopLoss3 : null,
+${form.secondaryTargetEnabled ? `🎯 Target 2: ${form.target2}\n🎯 Target 3: ${form.target3}` : ""}
 
-    rationale: form.rationale,
-    holding: form.holdingPeriod,
+${form.stopLoss2Enabled ? `🛑 SL 2: ${form.stopLoss2}\n🛑 SL 3: ${form.stopLoss3}` : ""}
+
+📌 Rationale: ${form.rationale}
+⏳ Holding: ${form.holdingPeriod}`
   },
   {
     headers: {

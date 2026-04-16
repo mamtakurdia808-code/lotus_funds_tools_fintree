@@ -146,27 +146,30 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
 export const saveTelegramUser = async (req: Request, res: Response) => {
   try {
-    const { telegram_user_id, telegram_client_name, phone_number } = req.body;
+    const { telegram_user_id, telegram_client_name, phone_number, user_id } = req.body;
 
     const query = `
-      INSERT INTO telegram_users (
-        telegram_user_id,
-        telegram_client_name,
-        phone_number
-      )
-      VALUES ($1, $2, $3)
-      ON CONFLICT (telegram_user_id)
-      DO UPDATE SET
-        telegram_client_name = EXCLUDED.telegram_client_name,
-        phone_number = EXCLUDED.phone_number
-      RETURNING *;
-    `;
+INSERT INTO telegram_users (
+  telegram_user_id,
+  telegram_client_name,
+  phone_number,
+  user_id
+)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (telegram_user_id)
+DO UPDATE SET
+  telegram_client_name = EXCLUDED.telegram_client_name,
+  phone_number = EXCLUDED.phone_number,
+  user_id = EXCLUDED.user_id
+RETURNING *;
+`;
 
     const values = [
-      telegram_user_id,
-      telegram_client_name,
-      phone_number
-    ];
+  telegram_user_id,
+  telegram_client_name,
+  phone_number,
+  user_id   // 👈 ADD THIS
+];
 
     const result = await pool.query(query, values);
 
@@ -263,5 +266,76 @@ export const deleteParticipant = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error("DELETE ERROR:", error.message);
     res.status(500).json({ error: error.message });
+  }
+};
+export const getClientsByRA = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      "SELECT * FROM telegram_users WHERE user_id = $1",
+      [id]
+    );
+
+    res.json(result.rows);
+
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const sendMessageToRAClients = async (req: Request, res: Response) => {
+  try {
+    const { raId, message } = req.body;
+
+    if (!raId || !message) {
+      return res.status(400).json({
+        success: false,
+        message: "raId and message are required",
+      });
+    }
+
+    // ✅ Fetch only RA clients
+    const result = await pool.query(
+      "SELECT telegram_user_id FROM telegram_users WHERE user_id = $1",
+      [raId]
+    );
+
+    const users = result.rows;
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No clients found for this RA",
+      });
+    }
+
+    const results: any[] = [];
+
+    for (const u of users) {
+      const sendResult = await safeSendMessage(u.telegram_user_id, message);
+
+      results.push({
+        userId: u.telegram_user_id,
+        ...sendResult,
+      });
+
+      await sleep(2000); // avoid telegram ban
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Messages sent to RA clients only",
+      results,
+    });
+
+  } catch (error: any) {
+    console.error("RA Message Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
