@@ -87,9 +87,9 @@ const AdminDashboard = () => {
         const formatted: AdminRow[] = data.map((item: any) => ({
        id: item.id,
           name:
-  `${item.first_name || ""} ${item.surname || ""}`.trim() ||
-  item.name ||
-  "N/A",
+            `${item.first_name || ""} ${item.surname || ""}`.trim() ||
+            item.name ||
+            "N/A",
           phone: item.mobile || "",
 
           profile: item.profile_image,
@@ -139,10 +139,10 @@ const AdminDashboard = () => {
 
   /* ================= FILTER (Approved only) ================= */
   const approvedRows = rows.filter(
-  (row) =>
-    (row.raStatus || "").toLowerCase() === "approved" ||
-    (row.status || "").toLowerCase() === "active"
-);
+    (row) =>
+      (row.raStatus || "").toLowerCase() === "approved" ||
+      (row.status || "").toLowerCase() === "active"
+  );
 
   const filteredRows = approvedRows.filter((row) => {
     const query = searchQuery.toLowerCase();
@@ -199,45 +199,36 @@ const AdminDashboard = () => {
     setParticipantUsername("");
   };
 
-const fetchParticipants = async (raId?: string) => {
-  try {
-    if (!raId) return;
+  const fetchParticipants = async (raId?: string) => {
+    try {
+      if (!raId) return;
 
     setParticipantLoading(true);
 
-    const token = localStorage.getItem("token"); // ✅ GET TOKEN
+      const url = `${import.meta.env.VITE_API_URL}/api/telegram/ra/${raId}`;
 
-    const url = `${import.meta.env.VITE_API_URL}/api/telegram/ra/${raId}`;
+    const response = await fetch(url);
 
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`, // ✅ ADD THIS
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Server responded with ${response.status}`);
-    }
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
 
     const data = await response.json();
-
-    console.log("✅ PARTICIPANTS:", data); // DEBUG
-
     setParticipantsList(data);
 
-  } catch (error) {
-    console.error("Fetch error:", error);
-  } finally {
-    setParticipantLoading(false);
-  }
-};
+    } catch (error) {
+      console.error("Fetch error:", error);
+    } finally {
+      setParticipantLoading(false);
+    }
+  };
 
-const handleViewParticipant = (row: AdminRow) => {
-  setPanelMode("participant");
-  setSelectedRA(row);
+  const handleViewParticipant = (row: AdminRow) => {
+    setPanelMode("participant");
+    setSelectedRA(row);
 
-  fetchParticipants(row.id); // always RA id
-};
+    fetchParticipants(row.id); // always RA id
+  };
 
   const handleUpdateParticipant = async () => {
     if (!participant) return;
@@ -459,10 +450,10 @@ const handleViewParticipant = (row: AdminRow) => {
 
                 <TableCell>
                   <Chip
-  size="small"
-  label={row.raStatus || "N/A"}
-  color={statusColor(row.raStatus || "") as any}
-/>
+                    size="small"
+                    label={row.raStatus || "N/A"}
+                    color={statusColor(row.raStatus || "") as any}
+                  />
                 </TableCell>
                 <TableCell>{row["age/time"]}</TableCell>
 
@@ -586,14 +577,14 @@ const handleViewParticipant = (row: AdminRow) => {
                   Join Telegram
                 </Button>
 
-                <Button
+                {/* <Button
                   variant="contained"
                   color="warning"
                   fullWidth
                   onClick={() => handleEdit(selectedRA.id)}
                 >
                   Edit
-                </Button>
+                </Button> */}
               </Box>
             </>
           ) : (
@@ -701,13 +692,13 @@ const handleViewParticipant = (row: AdminRow) => {
                     Add New Participant
                   </Typography>
                   <TelegramSearch
-  raId={selectedRA?.id}   // 👈 ADD THIS
-  onSaved={(raId) => {
-  if (raId) {
-    fetchParticipants(raId);
-  }
-}}
-/>
+                    raId={selectedRA?.id}   // 👈 ADD THIS
+                    onSaved={(raId) => {
+                      if (raId) {
+                        fetchParticipants(raId);
+                      }
+                    }}
+                  />
                 </Box>
 
                 {/* Update / Delete Buttons */}
