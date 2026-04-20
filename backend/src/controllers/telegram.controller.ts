@@ -69,6 +69,7 @@ export const saveTelegramUser = async (req: Request, res: Response) => {
       VALUES ($1, $2, $3, $4)
       ON CONFLICT (telegram_user_id)
       DO UPDATE SET
+        user_id = EXCLUDED.user_id,
         telegram_client_name = EXCLUDED.telegram_client_name,
         phone_number = EXCLUDED.phone_number
       RETURNING *;
