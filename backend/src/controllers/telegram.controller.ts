@@ -50,30 +50,36 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
 export const saveTelegramUser = async (req: Request, res: Response) => {
   try {
-    const { telegram_user_id, telegram_client_name, phone_number, user_id } = req.body;
+    const { user_id, telegram_user_id, telegram_client_name, phone_number } = req.body;
+
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        message: "user_id is required",
+      });
+    }
 
     const query = `
-INSERT INTO telegram_users (
-  telegram_user_id,
-  telegram_client_name,
-  phone_number,
-  user_id
-)
-VALUES ($1, $2, $3, $4)
-ON CONFLICT (telegram_user_id)
-DO UPDATE SET
-  telegram_client_name = EXCLUDED.telegram_client_name,
-  phone_number = EXCLUDED.phone_number,
-  user_id = EXCLUDED.user_id
-RETURNING *;
-`;
+      INSERT INTO telegram_users (
+        user_id,
+        telegram_user_id,
+        telegram_client_name,
+        phone_number
+      )
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (telegram_user_id)
+      DO UPDATE SET
+        telegram_client_name = EXCLUDED.telegram_client_name,
+        phone_number = EXCLUDED.phone_number
+      RETURNING *;
+    `;
 
     const values = [
-  telegram_user_id,
-  telegram_client_name,
-  phone_number,
-  user_id   // 👈 ADD THIS
-];
+      user_id,
+      telegram_user_id,
+      telegram_client_name,
+      phone_number
+    ];
 
     const result = await pool.query(query, values);
 
@@ -172,20 +178,21 @@ export const deleteParticipant = async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 export const getClientsByRA = async (req: Request, res: Response) => {
-  const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-  console.log("👉 RA ID RECEIVED:", id);
+    const result = await pool.query(
+      "SELECT * FROM telegram_users WHERE user_id = $1",
+      [id]
+    );
 
-  const result = await pool.query(
-    "SELECT * FROM telegram_users WHERE user_id = $1",
-    [id]
-  );
+    res.json(result.rows);
 
-  console.log("👉 DB RESULT:", result.rows);
-
-  res.json(result.rows);
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
 };
 
 export const sendMessageToRAClients = async (req: Request, res: Response) => {
