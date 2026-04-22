@@ -24,3 +24,4 @@ router.get("/ra/:raId", authenticate, getParticipantsByRA);
 router.get("/telegram/status", authenticate, getTelegramStatus);
 
 export default router;
+

@@ -23,6 +23,8 @@ import TelegramSearch from "./Admin common/TelegramSearch";
 
 type AdminRow = {
   id: string;
+  userId?: string;
+  raId?: string;
   name: string;
   phone: string;
 
@@ -257,7 +259,7 @@ const [participant, setParticipant] = useState<Participant | null>(null);
     setParticipant(null);
 setParticipantUsername("");
 
-    fetchParticipants(row.id); // always RA id
+    fetchParticipants(row.userId || row.id);
   };
 
   const handleUpdateParticipant = async () => {
