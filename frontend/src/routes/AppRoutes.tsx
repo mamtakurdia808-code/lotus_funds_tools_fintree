@@ -1,179 +1,194 @@
+import { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+
+// --- Layouts (loaded eagerly — they wrap everything, no benefit from lazying) ---
 import AppLayout from "../components/layout/AppLayout";
-import Dashboard from "../pages/Dashboard";
-import Settings from "../pages/Settings";
-import Signup from "../pages/common/Signup";
-import RegistrationPage from "../pages_registration/RegistrationPage";
-import Recommendations from "../pages/Recomendation";
-import Performance from "../pages/Performance";
 import AutomationLayout from "../components/layout_automation/AppLayout";
 import AdminLayout from "../layout_admin/AppLayout";
-import Afternoon from "../pages_automation/Afternoon";
-import Evening from "../pages_automation/Evening";
-import Morning from "../pages_automation/Morning";
-import Special from "../pages_automation/Special";
-import Weekly from "../pages_automation/Weekly";
-import AdminSettings from "../pages_admin/AdminSettings";
-import AdminApproval from "../pages_admin/AdminApproval";
-import AdminRecommendations from "../pages_admin/AdminRecommendations";
-import AdminDashboard from "../pages_admin/AdminDashboard";
-import LoginForm from "../common/LoginForm";
 import ClientLayout from "../components/layout_client/AppLayout";
-import ClientDashboard from "../pages_client/Dashboard";
-import ClientRecommendations from "../pages_client/Recomendation";
-import ClientPerformance from "../pages_client/Performance";
-import ClientNotFound from "../pages_client/Notfound";
-import EditPage from "../pages/EditPage";
-// import NotFound from "../pages/NotFound";
-import BrokerRegistration from "../pages_registration/BrokerRegistration";
-
-// --- NEW IMPORTS FOR MORNING REPORT ---
-import MorningReportBuilder from "../tools/morning-report/MorningReportBuilder";
-import MorningReport from "../tools/morning-report/MorningReport";
-import Logotheme from "../tools/morning-report/Logotheme";
-import Generator from "../tools/morning-report/Generator";
 import ProtectedRoute from "../components/ProtectedRoute";
 
-// Tool import
-import { ExceltoJSONTool } from "../tools/ExceltoJSONtool";
-import LoginFormAdmin from "../common/LoginFormAdmin";
+// --- Lazy: Auth & Public ---
+const LoginForm            = lazy(() => import("../common/LoginForm"));
+const LoginFormAdmin       = lazy(() => import("../common/LoginFormAdmin"));
+const Signup               = lazy(() => import("../pages/common/Signup"));
+const NewPassword          = lazy(() => import("../common/NewPassword"));
 
-// NewPasswordSet Route
-import NewPassword from "../common/NewPassword";
+// --- Lazy: Registration ---
+const RegistrationPage     = lazy(() => import("../pages_registration/RegistrationPage"));
+const BrokerRegistration   = lazy(() => import("../pages_registration/BrokerRegistration"));
+
+// --- Lazy: Main (Employee / Broker) ---
+const Dashboard            = lazy(() => import("../pages/Dashboard"));
+const Performance          = lazy(() => import("../pages/Performance"));
+const Settings             = lazy(() => import("../pages/Settings"));
+const Recommendations      = lazy(() => import("../pages/Recomendation"));
+const EditPage             = lazy(() => import("../pages/EditPage"));
+
+// --- Lazy: Morning Report Tools ---
+const MorningReportBuilder = lazy(() => import("../tools/morning-report/MorningReportBuilder"));
+const MorningReport        = lazy(() => import("../tools/morning-report/MorningReport"));
+const Logotheme            = lazy(() => import("../tools/morning-report/Logotheme"));
+const Generator            = lazy(() => import("../tools/morning-report/Generator"));
+
+// --- Lazy: Automation ---
+const Afternoon            = lazy(() => import("../pages_automation/Afternoon"));
+const Evening              = lazy(() => import("../pages_automation/Evening"));
+const Morning              = lazy(() => import("../pages_automation/Morning"));
+const Special              = lazy(() => import("../pages_automation/Special"));
+const Weekly               = lazy(() => import("../pages_automation/Weekly"));
+const ExceltoJSONTool      = lazy(() => import("../tools/ExceltoJSONtool").then(m => ({ default: m.ExceltoJSONTool })));
+
+// --- Lazy: Admin ---
+const AdminDashboard       = lazy(() => import("../pages_admin/AdminDashboard"));
+const AdminRecommendations = lazy(() => import("../pages_admin/AdminRecommendations"));
+const AdminApproval        = lazy(() => import("../pages_admin/AdminApproval"));
+const AdminSettings        = lazy(() => import("../pages_admin/AdminSettings"));
+
+// --- Lazy: Client ---
+const ClientDashboard      = lazy(() => import("../pages_client/Dashboard"));
+const ClientRecommendations= lazy(() => import("../pages_client/Recomendation"));
+const ClientPerformance    = lazy(() => import("../pages_client/Performance"));
+const ClientNotFound       = lazy(() => import("../pages_client/Notfound"));
+
+// --- Fallback UI shown while a lazy chunk is loading ---
+const PageLoader = () => (
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>
+    <span>Loading…</span>
+  </div>
+);
 
 const AppRoutes = () => {
   return (
-    <Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
 
-      {/* New Password Route MUST be above wildcard */}
-      <Route path="/set-password" element={<NewPassword />} />
+        {/* New Password — must be above wildcard */}
+        <Route path="/set-password" element={<NewPassword />} />
 
-      {/* --- Auth & Public Routes --- */}
-      <Route path="/login" element={<LoginForm />} />
-      <Route path="/login-admin" element={<LoginFormAdmin />} />
+        {/* Auth & Public */}
+        <Route path="/login"       element={<LoginForm />} />
+        <Route path="/login-admin" element={<LoginFormAdmin />} />
+        <Route path="/signup"      element={<Signup />} />
 
-      <Route path="/signup" element={<Signup />} />
+        {/* Registration */}
+        <Route path="/registration">
+          <Route index          element={<RegistrationPage />} />
+          <Route path="broker"  element={<BrokerRegistration />} />
+        </Route>
 
-      {/* --- Registration Workflow --- */}
-      <Route path="/registration">
-        <Route index element={<RegistrationPage />} />
-        <Route path="broker" element={<BrokerRegistration />} />
-      </Route>
-
-      {/* --- 1. Main Dashboard Layout (EMPLOYEE + ADMIN) --- */}
-      <Route
-        element={
-          <ProtectedRoute allowedRoles={["RESEARCH_ANALYST", "BROKER"]}>
-            <AppLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/performance" element={<Performance />} />
-        <Route path="/settings" element={<Settings />} />
-
+        {/* 1. Main Layout — RESEARCH_ANALYST / BROKER */}
         <Route
-          path="/recommendations"
           element={
-            <ProtectedRoute allowedRoles={["RESEARCH_ANALYST"]}>
-              <Recommendations />
+            <ProtectedRoute allowedRoles={["RESEARCH_ANALYST", "BROKER"]}>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/"               element={<Dashboard />} />
+          <Route path="/performance"    element={<Performance />} />
+          <Route path="/settings"       element={<Settings />} />
+          <Route
+            path="/recommendations"
+            element={
+              <ProtectedRoute allowedRoles={["RESEARCH_ANALYST"]}>
+                <Recommendations />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+
+        {/* 2. Morning Report Workflow — EMPLOYEE / ADMIN */}
+        <Route
+          path="/morning-report-builder"
+          element={
+            <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
+              <MorningReportBuilder />
             </ProtectedRoute>
           }
         />
-      </Route>
+        <Route
+          path="/morning-report-view"
+          element={
+            <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
+              <MorningReport />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/logo-theme"
+          element={
+            <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
+              <Logotheme />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/email-generator"
+          element={
+            <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
+              <Generator />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* --- 2. Morning Report Workflow (EMPLOYEE + ADMIN) --- */}
-      <Route
-        path="/morning-report-builder"
-        element={
-          <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
-            <MorningReportBuilder />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/morning-report-view"
-        element={
-          <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
-            <MorningReport />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/logo-theme"
-        element={
-          <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
-            <Logotheme />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/email-generator"
-        element={
-          <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
-            <Generator />
-          </ProtectedRoute>
-        }
-      />
+        {/* 3. Automation Layout — EMPLOYEE / ADMIN */}
+        <Route
+          path="/automation"
+          element={
+            <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
+              <AutomationLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index             element={<Navigate to="Afternoon" replace />} />
+          <Route path="Afternoon"  element={<Afternoon />} />
+          <Route path="Evening"    element={<Evening />} />
+          <Route path="Morning"    element={<Morning />} />
+          <Route path="Special"    element={<Special />} />
+          <Route path="Weekly"     element={<Weekly />} />
+          <Route path="ExcelTool"  element={<ExceltoJSONTool />} />
+        </Route>
 
-      {/* --- 3. Automation Layout (EMPLOYEE + ADMIN) --- */}
-      <Route
-        path="/automation"
-        element={
-          <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
-            <AutomationLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="Afternoon" replace />} />
-        <Route path="Afternoon" element={<Afternoon />} />
-        <Route path="Evening" element={<Evening />} />
-        <Route path="Morning" element={<Morning />} />
-        <Route path="Special" element={<Special />} />
-        <Route path="Weekly" element={<Weekly />} />
-        <Route path="ExcelTool" element={<ExceltoJSONTool />} />
-      </Route>
+        {/* 4. Admin Layout — ADMIN ONLY */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index                      element={<AdminDashboard />} />
+          <Route path="dashboard"           element={<AdminDashboard />} />
+          <Route path="recommendations"     element={<AdminRecommendations />} />
+          <Route path="approval"            element={<AdminApproval />} />
+          <Route path="settings"            element={<AdminSettings />} />
+          <Route path="edit/:type/:id"      element={<EditPage />} />
+        </Route>
 
+        {/* 5. Client Layout — CLIENT ONLY */}
+        <Route
+          path="/client/*"
+          element={
+            <ProtectedRoute allowedRoles={["CLIENT"]}>
+              <ClientLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index                  element={<ClientDashboard />} />
+          <Route path="dashboard"       element={<ClientDashboard />} />
+          <Route path="recommendations" element={<ClientRecommendations />} />
+          <Route path="performance"     element={<ClientPerformance />} />
+          <Route path="*"               element={<ClientNotFound />} />
+        </Route>
 
+        {/* Catch-all — always last */}
+        <Route path="*" element={<Navigate to="/" replace />} />
 
-      s      {/* --- 4. Admin Layout (ADMIN ONLY) --- */}
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute allowedRoles={["ADMIN"]}>
-            <AdminLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<AdminDashboard />} />
-        <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="recommendations" element={<AdminRecommendations />} />
-        <Route path="approval" element={<AdminApproval />} />
-        <Route path="settings" element={<AdminSettings />} />
-        <Route path="edit/:type/:id" element={<EditPage />} />
-      </Route>
-
-      {/* --- 5. Client Layout (CLIENT ONLY) --- */}
-      <Route
-        path="/client/*"
-        element={
-          <ProtectedRoute allowedRoles={["CLIENT"]}>
-            <ClientLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<ClientDashboard />} />
-        <Route path="dashboard" element={<ClientDashboard />} />
-        <Route path="recommendations" element={<ClientRecommendations />} />
-        <Route path="performance" element={<ClientPerformance />} />
-        <Route path="*" element={<ClientNotFound />} />
-      </Route>
-
-      {/* Catch-all should ALWAYS be LAST */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-
-    </Routes>
+      </Routes>
+    </Suspense>
   );
-}
+};
 
 export default AppRoutes;
