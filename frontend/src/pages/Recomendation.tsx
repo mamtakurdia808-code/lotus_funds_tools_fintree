@@ -77,6 +77,7 @@ const NewRecommendation = () => {
 
   const [isErrataMode, setIsErrataMode] = useState(false);
   const [errataSourceId, setErrataSourceId] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
 
   const transparentInputSx = {
@@ -87,11 +88,12 @@ const NewRecommendation = () => {
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      console.log("Selected file:", file.name);
-    }
-  };
+  const file = event.target.files?.[0];
+  if (file) {
+    setSelectedFile(file);   // ✅ store it
+    console.log("Selected file:", file.name);
+  }
+};
 
   type RecommendationForm = {
     exchangeType: "NSE" | "BSE";
@@ -211,6 +213,7 @@ const NewRecommendation = () => {
         ? suggestion
         : inputValue;
 
+    // 🔹 Base payload (same as before)
     const payload = {
       exchange_type: form.exchangeType,
       market_type: form.exchange,
@@ -239,8 +242,10 @@ const NewRecommendation = () => {
 
     let res;
 
+    // =========================================================
+    // ✅ ERRATA FLOW (NO FILE HERE)
+    // =========================================================
     if (isErrataMode && errataSourceId) {
-      // ERRATA (unchanged)
       const updates = {
         entry_price: form.entry || undefined,
         target_price: form.target || undefined,
@@ -269,30 +274,47 @@ const NewRecommendation = () => {
       );
 
       alert("Errata Created ✅");
+    }
 
-    } else {
-      // NORMAL CREATE
+    // =========================================================
+    // ✅ NORMAL CREATE (WITH FILE)
+    // =========================================================
+    else {
+      const formData = new FormData();
+
+      // 🔹 attach file
+      if (selectedFile) {
+        formData.append("file", selectedFile);
+      }
+
+      // 🔹 attach all fields
+      Object.entries(payload).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          formData.append(key, value as any);
+        }
+      });
+
       res = await axios.post(
         import.meta.env.VITE_API_URL + "/api/research/calls",
-        payload,
+        formData,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
         }
       );
 
       alert("Research Call Created ✅");
 
-      // ✅ UPDATED TELEGRAM CALL (ONLY THIS PART CHANGED)
+      // =========================================================
+      // ✅ TELEGRAM SEND (UNCHANGED)
+      // =========================================================
       try {
         const now = new Date();
 
-        const formattedDateTime =
-          now.toLocaleDateString("en-GB") +
-          " " +
-          now.toLocaleTimeString("en-IN");
-
-          const message = `
-Date & Time : ${new Date().toLocaleString()}
+        const message = `
+Date & Time : ${now.toLocaleString()}
 
 *${form.action}* *${finalDisplayName}*
 Call Type : ${form.exchange} ${form.callType} ${form.tradeType}
@@ -329,14 +351,14 @@ Underlying Study: ${form.underlyingStudy?.label || "N/A"}
 `;
 
         await axios.post(
-  `${import.meta.env.VITE_API_URL}/api/telegram/send-ra-message`,
-  { message },
-  {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }
-);
+          `${import.meta.env.VITE_API_URL}/api/telegram/send-ra-message`,
+          { message },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         console.log("✅ Telegram sent ONLY to this RA clients");
       } catch (telegramErr: any) {
@@ -347,6 +369,9 @@ Underlying Study: ${form.underlyingStudy?.label || "N/A"}
       }
     }
 
+    // =========================================================
+    // ✅ REFRESH + RESET
+    // =========================================================
     await fetchRecommendations();
     resetForm();
 
@@ -709,80 +734,113 @@ Underlying Study: ${form.underlyingStudy?.label || "N/A"}
 
 
   const handleTrack = async () => {
-    try {
-      const finalDisplayName =
-        typeof suggestion === "object" && suggestion !== null
-          ? suggestion.display_name
-          : inputValue.trim();
+  try {
+    const token = localStorage.getItem("token");
 
-      const payload = {
-        status: "DRAFT",
-
-        exchange_type: form.exchangeType,
-        market_type: form.exchange,
-        symbol: form.symbol || finalDisplayName,
-        display_name: finalDisplayName,
-
-        action: form.action,
-        call_type: form.callType,
-        trade_type: form.tradeType,
-        expiry_date: form.expiry || null,
-
-        // 🔹 Entry
-        entry_price: form.entry || null,
-        entry_price_low: form.rangeEnabled ? form.entryLow || null : null,
-        entry_price_upper: form.rangeEnabled ? form.entryUpper || null : null,
-
-        // 🔹 Targets
-        target_price: form.target || null,
-        target_price_2: form.secondaryTargetEnabled
-          ? form.target2 || null
-          : null,
-        target_price_3: form.secondaryTargetEnabled
-          ? form.target3 || null
-          : null,
-
-        // 🔹 Stop Loss
-        stop_loss: form.stopLoss || null,
-        stop_loss_2: form.stopLoss2Enabled
-          ? form.stopLoss2 || null
-          : null,
-        stop_loss_3: form.stopLoss2Enabled
-          ? form.stopLoss3 || null
-          : null,
-
-        holding_period: form.holdingPeriod || null,
-
-        rationale: form.rationale,
-        underlying_study: form.underlyingStudy?.label || null,
-
-        is_algo: false,
-        has_vested_interest: false,
-        research_remarks: form.remark || null,
-      };
-
-      console.log("TRACK PAYLOAD:", payload);
-
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/research/calls`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      // 🔥 IMPORTANT: Refetch because backend does not return full object
-      await fetchRecommendations();
-
-      // Optional: Reset form after tracking
-      // resetForm();
-
-    } catch (err: any) {
-      console.error("Track failed:", err?.response?.data || err);
+    if (!token) {
+      alert("Please login again");
+      return;
     }
-  };
+
+    const finalDisplayName =
+      typeof suggestion === "object" && suggestion !== null
+        ? suggestion.display_name
+        : inputValue.trim();
+
+    // 🔹 Base payload
+    const payload = {
+      status: "DRAFT",
+
+      exchange_type: form.exchangeType,
+      market_type: form.exchange,
+      symbol: form.symbol || finalDisplayName,
+      display_name: finalDisplayName,
+
+      action: form.action,
+      call_type: form.callType,
+      trade_type: form.tradeType,
+      expiry_date: form.expiry || null,
+
+      // 🔹 Entry
+      entry_price: form.entry || null,
+      entry_price_low: form.rangeEnabled ? form.entryLow || null : null,
+      entry_price_upper: form.rangeEnabled ? form.entryUpper || null : null,
+
+      // 🔹 Targets
+      target_price: form.target || null,
+      target_price_2: form.secondaryTargetEnabled
+        ? form.target2 || null
+        : null,
+      target_price_3: form.secondaryTargetEnabled
+        ? form.target3 || null
+        : null,
+
+      // 🔹 Stop Loss
+      stop_loss: form.stopLoss || null,
+      stop_loss_2: form.stopLoss2Enabled
+        ? form.stopLoss2 || null
+        : null,
+      stop_loss_3: form.stopLoss2Enabled
+        ? form.stopLoss3 || null
+        : null,
+
+      // ⚠️ FIXED KEY
+      holding_period: form.holdingPeriod || null,
+
+      rationale: form.rationale,
+      underlying_study: form.underlyingStudy?.label || null,
+
+      is_algo: false,
+      has_vested_interest: false,
+      research_remarks: form.remark || null,
+    };
+
+    // =========================================================
+    // ✅ CONVERT TO FORMDATA
+    // =========================================================
+    const formData = new FormData();
+
+    // 🔹 attach file if exists
+    if (selectedFile) {
+      formData.append("file", selectedFile);
+    }
+
+    // 🔹 append all fields
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        formData.append(key, value as any);
+      }
+    });
+
+    console.log("TRACK FORM DATA READY");
+
+    // =========================================================
+    // ✅ API CALL
+    // =========================================================
+    await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/research/calls`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    alert("Draft Saved ✅");
+
+    // 🔥 Refresh list
+    await fetchRecommendations();
+
+    // Optional reset
+    // resetForm();
+
+  } catch (err: any) {
+    console.error("Track failed:", err?.response?.data || err);
+    alert(err?.response?.data?.message || "Track failed");
+  }
+};
 
   // Add this helper function outside or inside your component
 const getPriceError = (field: string, currentForm: any): string | null => {
@@ -1490,6 +1548,11 @@ const getPriceError = (field: string, currentForm: any): string | null => {
             >
               Upload Media
             </Button>
+            {selectedFile && (
+  <Typography sx={{ fontSize: "0.6rem", color: "green" }}>
+    {selectedFile.name}
+  </Typography>
+)}
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <Typography sx={{ fontSize: '0.65rem', fontWeight: 600 }}>Is this an Algo Powered Recommendation?</Typography>
               <Switch size="small" />

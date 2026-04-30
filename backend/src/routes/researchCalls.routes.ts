@@ -7,11 +7,12 @@ import {
     publishDraftCall
 } from "../controllers/researchCalls.controller";
 import { exitResearchCall } from "../controllers/exitResearchCall";
+import { upload } from "../middlewares/upload";
 
 
 const router = Router();
 
-router.post("/research/calls", authenticate, createResearchCall);
+router.post("/research/calls", authenticate, upload.single("file"), createResearchCall);
 
 router.get("/research/calls/my", authenticate, getResearchCalls);
 router.post("/research/calls/errata", authenticate, createErrata);

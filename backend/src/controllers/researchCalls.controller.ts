@@ -1,17 +1,17 @@
-
-//import { client } from "../telegramClient";
 import { Response } from "express";
 import { pool } from "../db";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { Router } from "express";
-
-
 
 /* =========================================================
    CREATE RESEARCH CALL  (POST /api/research/calls)
    ========================================================= */
 export const createResearchCall = async (req: AuthRequest, res: Response) => {
   try {
+    const file = req.file; // 👈 multer adds this
+
+    const filePath = file ? file.path : null;
+
     const {
       status = "PUBLISHED",
       exchange_type,
@@ -43,96 +43,75 @@ export const createResearchCall = async (req: AuthRequest, res: Response) => {
       INSERT INTO research_calls (
         ra_user_id,
         status,
-
         exchange_type,
         market_type,
-
         symbol,
         display_name,
-
         action,
         call_type,
         trade_type,
         expiry_date,
-
         entry_price,
         entry_price_low,
         entry_price_upper,
-
         target_price,
         target_price_2,
         target_price_3,
-
         stop_loss,
         stop_loss_2,
         stop_loss_3,
-
         holding_period,
         rationale,
         underlying_study,
-
         is_algo,
         has_vested_interest,
-        research_remarks
+        research_remarks,
+        file_url   -- 👈 ADD COLUMN IN DB
       )
       VALUES (
-        $1, $2,
-        $3, $4,
-        $5, $6,
-        $7, $8, $9, $10,
-        $11, $12, $13,
-        $14, $15, $16,
-        $17, $18, $19,
-        $20, $21, $22,
-        $23, $24, $25
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
+        $11,$12,$13,$14,$15,$16,$17,$18,$19,
+        $20,$21,$22,$23,$24,$25,$26
       )
       RETURNING id, created_at;
     `;
 
     const values = [
-      req.user!.id,          // RA ID
+      req.user!.id,
       status,
-
       exchange_type,
       market_type,
-
       symbol,
       display_name,
-
       action,
       call_type,
       trade_type,
       expiry_date,
-
       entry_price,
       entry_price_low,
       entry_price_upper,
-
       target_price,
       target_price_2,
       target_price_3,
-
       stop_loss,
       stop_loss_2,
       stop_loss_3,
-
       holding_period,
       rationale,
       underlying_study,
-
       is_algo,
       has_vested_interest,
-      research_remarks
+      research_remarks,
+      filePath  // 👈 save file path
     ];
 
     const { rows } = await pool.query(query, values);
 
-    // ✅ NO TELEGRAM HERE (REMOVED COMPLETELY)
-
     return res.status(201).json({
       message: "Research call created successfully",
       id: rows[0].id,
-      created_at: rows[0].created_at
+      created_at: rows[0].created_at,
+      file: filePath
     });
 
   } catch (err) {
