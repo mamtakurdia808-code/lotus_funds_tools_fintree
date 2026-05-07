@@ -8,6 +8,7 @@ import AdminLayout from "../components/layout_admin/AppLayout";
 import ClientLayout from "../components/layout_client/AppLayout";
 import ProtectedRoute from "../components/ProtectedRoute";
 import LoadingPage from "../common/LoadingPage";
+import AdminAuditLogs from "../pages_admin/AdminAuditLogs";
 
 // --- Lazy: Auth & Public ---
 const LoginForm = lazy(() => import("../common/LoginForm"));
@@ -172,6 +173,7 @@ const AppRoutes = () => {
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="recommendations" element={<AdminRecommendations />} />
           <Route path="approval" element={<AdminApproval />} />
+          <Route path="AdminAuditLogs" element={<AdminAuditLogs />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="edit/:type/:id" element={<EditPage />} />
         </Route>
