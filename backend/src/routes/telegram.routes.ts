@@ -8,6 +8,8 @@ import {
   sendOtp,
   verifyOtp,
   getTelegramStatus,
+  getMyParticipants,
+  saveParticipantRA,
 } from "../controllers/telegram.controller";
 import { authenticate } from "../middlewares/auth.middleware";
 import { getParticipantsByRA } from "../controllers/telegram.controller";
@@ -22,6 +24,17 @@ router.post("/send-otp", authenticate, sendOtp);
 router.post("/verify-otp", authenticate, verifyOtp);
 router.get("/ra/:raId", authenticate, getParticipantsByRA);
 router.get("/telegram/status", authenticate, getTelegramStatus);
+router.get(
+  "/my-participants",
+  authenticate,
+  getMyParticipants
+);
+
+router.post(
+  "/add-participant",
+  authenticate,
+  saveParticipantRA
+);
 
 export default router;
 

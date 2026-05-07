@@ -603,3 +603,179 @@ export const getTelegramStatus = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: "Error" });
   }
 };
+
+export const saveParticipantRA = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    let { telegram_client_name } = req.body;
+
+    if (!telegram_client_name) {
+      return res.status(400).json({
+        success: false,
+        message: "Telegram username is required",
+      });
+    }
+
+    // ✅ Normalize username
+    telegram_client_name = telegram_client_name
+      .trim()
+      .replace("@", "");
+
+    // 🔥 STEP 1: FETCH TELEGRAM SESSION FROM DB (IMPORTANT FIX)
+    const userResult = await pool.query(
+      `SELECT telegram_session FROM users WHERE id = $1`,
+      [userId]
+    );
+
+    const sessionString = userResult.rows[0]?.telegram_session;
+
+    if (!sessionString) {
+      return res.status(401).json({
+        success: false,
+        message: "Telegram session not found. Please login again.",
+      });
+    }
+
+    // 🔥 STEP 2: CREATE CLIENT WITH SESSION STRING
+    const client = await createClient(sessionString);
+
+    let telegramUser: Api.User;
+
+    try {
+      const result = await client.invoke(
+        new Api.contacts.ResolveUsername({
+          username: telegram_client_name,
+        })
+      );
+
+      const foundUser = result.users?.[0] as Api.User | undefined;
+
+      if (!foundUser || !("id" in foundUser)) {
+        return res.status(404).json({
+          success: false,
+          message: "Telegram user not found",
+        });
+      }
+
+      telegramUser = foundUser;
+    } catch (telegramError) {
+      console.error("TELEGRAM ERROR:", telegramError);
+
+      return res.status(404).json({
+        success: false,
+        message: "Invalid Telegram username or inaccessible user",
+      });
+    }
+
+    // ✅ Extract data
+    const telegramUserId = telegramUser.id.toString();
+
+// ✅ Always ensure @ prefix for username
+const username = telegramUser.username
+  ? `@${telegramUser.username}`
+  : `@${telegram_client_name}`;
+
+// ⚠️ Telegram phone is often raw or missing
+let phone = (telegramUser as any).phone || null;
+
+// ✅ Ensure + prefix if phone exists
+if (phone && typeof phone === "string" && !phone.startsWith("+")) {
+  phone = `+${phone}`;
+}
+
+    // ✅ Save to DB
+    const query = `
+      INSERT INTO telegram_users (
+        telegram_user_id,
+        telegram_client_name,
+        phone_number,
+        user_id
+      )
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (telegram_user_id, user_id)
+      DO UPDATE SET
+        telegram_client_name = EXCLUDED.telegram_client_name,
+        phone_number = EXCLUDED.phone_number
+      RETURNING *;
+    `;
+
+    const result = await pool.query(query, [
+      telegramUserId,
+      username,
+      phone,
+      userId,
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Participant saved successfully",
+      data: result.rows[0],
+    });
+  } catch (err: any) {
+    console.error("SAVE RA PARTICIPANT ERROR:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Failed to save participant",
+    });
+  }
+};
+
+export const getMyParticipants = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        telegram_user_id,
+        telegram_client_name,
+        phone_number
+      FROM telegram_users
+      WHERE user_id = $1
+      ORDER BY telegram_client_name ASC
+      `,
+      [userId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      count: result.rows.length,
+      data: result.rows,
+    });
+
+  } catch (err: any) {
+    console.error(
+      "GET MY PARTICIPANTS ERROR:",
+      err
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        err.message || "Failed to fetch participants",
+    });
+  }
+};

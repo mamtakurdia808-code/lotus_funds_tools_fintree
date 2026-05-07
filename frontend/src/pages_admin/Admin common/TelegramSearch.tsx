@@ -4,7 +4,7 @@ import { useState } from "react";
 import axios from "axios";
 
 type TelegramSearchProps = {
-  raId: string; // REQUIRED
+  raId?: string; // ✅ optional now
   onSaved?: () => void;
 };
 
@@ -16,64 +16,83 @@ export const TelegramSearch = ({ raId, onSaved }: TelegramSearchProps) => {
   const [phoneError, setPhoneError] = useState("");
 
   const handleSave = async () => {
-    // ✅ RA validation
-    if (!raId) {
-      alert("RA ID missing. Please reload.");
-      return;
-    }
+  // ✅ At least one field required
+  if (!telegramId && !username && !phoneNumber) {
+    alert("Enter at least one: Username, Telegram ID, or Phone");
+    return;
+  }
 
-    // ✅ At least one field required
-    if (!telegramId && !username && !phoneNumber) {
-      alert("Enter at least one: Username, Telegram ID, or Phone");
-      return;
-    }
+  if (phoneNumber && !phoneNumber.startsWith("+91")) {
+    alert("Phone number must start with +91");
+    return;
+  }
 
-    if (phoneNumber && !phoneNumber.startsWith("+91")) {
-  alert("Phone number must start with +91");
-  return;
-}
+  const cleanUsername = username.trim().replace(/^@/, "");
 
-    // ✅ Normalize username (remove @)
-    const cleanUsername = username.trim().replace(/^@/, "");
+  try {
+    setLoading(true);
 
-    try {
-      setLoading(true);
+    const token = localStorage.getItem("token");
 
+    // 🔥 COMMON PAYLOAD
+    const payload = {
+      telegram_user_id: telegramId || null,
+      telegram_client_name: cleanUsername || null,
+      phone_number: phoneNumber || null,
+    };
+
+    // =========================
+    // ✅ ADMIN FLOW
+    // =========================
+    if (raId && raId.trim()) {
       await axios.post(
         `${import.meta.env.VITE_API_URL}/api/telegram/save-user`,
         {
-          telegram_user_id: telegramId || null,
-          telegram_client_name: cleanUsername || null,
-          phone_number: phoneNumber || null,
-          user_id: raId,
+          ...payload,
+          user_id: raId.trim(), // ✅ required for admin
         },
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
-
-      alert("✅ Saved successfully");
-
-      // refresh parent list
-      onSaved?.();
-
-      // reset fields
-      setUsername("");
-      setTelegramId("");
-      setPhoneNumber("");
-
-    } catch (err: any) {
-      const errorMsg =
-        err.response?.data?.message ||
-        "Invalid Telegram details or server error";
-
-      alert(`❌ Error: ${errorMsg}`);
-    } finally {
-      setLoading(false);
     }
-  };
+
+    // =========================
+    // ✅ RA FLOW (SELF)
+    // =========================
+    else {
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/telegram/add-participant`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+    }
+
+    alert("✅ Saved successfully");
+
+    onSaved?.();
+
+    // reset fields
+    setUsername("");
+    setTelegramId("");
+    setPhoneNumber("");
+
+  } catch (err: any) {
+    const errorMsg =
+      err.response?.data?.message ||
+      "Invalid Telegram details or server error";
+
+    alert(`❌ Error: ${errorMsg}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Box sx={{ p: 1, maxWidth: 1000 }}>
