@@ -89,7 +89,8 @@ const TelegramConnection = () => {
                             placeholder="+91XXXXXXXXXX"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
-                            sx={{ width: "50%" }}
+                            size="small"
+                            sx={{ width: { xs: "100%", sm: "50%" } }}
                         />
 
                         <Box sx={{ textAlign: "left", mt: 1 }}>
@@ -158,7 +159,8 @@ const TelegramConnection = () => {
                             label="Enter OTP"
                             value={otp}
                             onChange={(e) => setOtp(e.target.value)}
-                            sx={{ width: "50%" }}
+                            size="small"
+                            sx={{ width: { xs: "100%", sm: "50%" } }}
                         />
 
                         <Stack direction="row" spacing={2}>

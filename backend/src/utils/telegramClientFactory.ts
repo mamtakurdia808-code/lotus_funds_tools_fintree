@@ -1,8 +1,13 @@
 import { TelegramClient } from "telegram";
 import { StringSession } from "telegram/sessions";
 
-export const createClient = async (sessionString?: string) => {
-  const stringSession = new StringSession(sessionString || "");
+export const createClient = async (sessionString: string) => {
+  // ✅ Strict validation (NO empty / invalid values allowed)
+  if (!sessionString || typeof sessionString !== "string") {
+    throw new Error("Invalid Telegram session string");
+  }
+
+  const stringSession = new StringSession(sessionString);
 
   const client = new TelegramClient(
     stringSession,
@@ -17,4 +22,3 @@ export const createClient = async (sessionString?: string) => {
 
   return client;
 };
-// 🔥 NOTE: This function only creates and connects the client. It does NOT handle authentication (e.g., sending OTP, signing in, etc.). That logic should be implemented separately, using the created client instance.
