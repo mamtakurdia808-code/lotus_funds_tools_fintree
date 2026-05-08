@@ -22,10 +22,15 @@ const automationSidebarItems: SidebarItem[] = [
   //   icon: <FolderIcon sx={{ mr: 1.5 }} />,
   // },
   {
-    label: "AdminApproval",
+    label: "Admin Approval",
     path: "/admin/approval",
     icon: <PrivacyTipIcon sx={{ mr: 1.5 }} />,
   },
+  {    
+    label: "Audit Logs", 
+    path: "/admin/AdminAuditLogs" , 
+    icon: <FolderIcon sx={{ mr: 1.5 }} />
+   },
   {
     label: "Settings",
     path: "/admin/settings",
