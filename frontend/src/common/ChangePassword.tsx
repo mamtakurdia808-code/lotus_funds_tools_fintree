@@ -46,17 +46,16 @@ const handleConfirm = async () => {
 
         let url = "";
 
-        if (role === "ADMIN") {
-            url = "http://localhost:3000/api/auth/admin/change-password";
+       if (role === "ADMIN") {
+            url = `${import.meta.env.VITE_API_URL}/api/auth/admin/change-password`;
         } 
         else if (role === "RESEARCH_ANALYST") {
-            url = "http://localhost:3000/api/registration/ra/change-password";
+            url = `${import.meta.env.VITE_API_URL}/api/registration/ra/change-password`;
         } 
         else {
             setError("Invalid role for password change");
             return;
         }
-
         const res = await axios.post(
             url,
             { oldPassword, newPassword },

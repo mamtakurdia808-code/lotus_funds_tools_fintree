@@ -5,6 +5,34 @@ import {AuthRequest} from "../middlewares/auth.middleware";
 import { createClient } from "../utils/telegramClientFactory";
 import { otpStore } from "../utils/telegramStore";
 import { Api } from "telegram";
+import { createAuditLog } from "../utils/auditLogger";
+
+/* ================= GET CLIENT IP ================= */
+
+const getClientIp = (req: Request) => {
+  let ip =
+    (req.headers["x-forwarded-for"] as string) ||
+    req.socket.remoteAddress ||
+    req.ip ||
+    "Unknown";
+
+  // if multiple IPs exist
+  if (ip.includes(",")) {
+    ip = ip.split(",")[0].trim();
+  }
+
+  // convert IPv6 localhost
+  if (ip === "::1") {
+    ip = "127.0.0.1";
+  }
+
+  // remove IPv6 prefix
+  if (ip.startsWith("::ffff:")) {
+    ip = ip.replace("::ffff:", "");
+  }
+
+  return ip;
+};
 
 /**
  * Safe message sender (handles Telegram rate limits)
@@ -163,6 +191,40 @@ export const saveTelegramUser = async (req: AuthRequest, res: Response) => {
       user_id,
     ]);
 
+    
+
+    // ✅ AUDIT LOG (ONLY ADMIN)
+if (req.user?.role === "ADMIN") {
+  await createAuditLog({
+    adminId: req.user?.id,
+
+    adminName: req.user?.name || "ADMIN",
+
+    adminRole: req.user?.role || "ADMIN",
+
+    action: "ADD",
+
+    module: "TELEGRAM_CLIENT",
+
+    targetEntity:
+      resolvedUsername ||
+      resolvedTelegramId ||
+      phone_number,
+
+    targetType: "CLIENT",
+
+    description: `Admin added Telegram client for RA ID ${user_id}`,
+
+    status: "SUCCESS",
+
+   ipAddress: getClientIp(req),
+
+    device: req.headers["user-agent"] as string,
+
+    newValue: result.rows[0],
+  });
+}
+
     return res.json({
       success: true,
       data: result.rows[0],
@@ -200,6 +262,11 @@ export const updateParticipant = async (req: AuthRequest, res: Response) => {
     let query;
     let values;
 
+    const oldData = await pool.query(
+  `SELECT * FROM telegram_users WHERE id = $1`,
+  [id]
+);
+
     // ✅ ADMIN can update ANY participant
     if (role === "ADMIN") {
       query = `
@@ -231,6 +298,39 @@ export const updateParticipant = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: "Participant not found" });
     }
 
+    // ✅ AUDIT LOG
+if (role === "ADMIN") {
+  await createAuditLog({
+    adminId: req.user?.id,
+
+    adminName: req.user?.name || "ADMIN",
+
+    adminRole: req.user?.role || "ADMIN",
+
+    action: "UPDATE",
+
+    module: "TELEGRAM_CLIENT",
+
+    targetEntity:
+      result.rows[0]?.telegram_client_name ||
+      result.rows[0]?.telegram_user_id,
+
+    targetType: "CLIENT",
+
+    description: "Admin updated Telegram client",
+
+    status: "SUCCESS",
+
+   ipAddress: getClientIp(req),
+
+    device: req.headers["user-agent"] as string,
+
+    oldValue: oldData.rows[0],
+
+    newValue: result.rows[0],
+  });
+}
+
     return res.json({
       message: "Participant updated successfully",
       data: result.rows[0],
@@ -261,6 +361,11 @@ export const deleteParticipant = async (req: AuthRequest, res: Response) => {
     let query;
     let values;
 
+    const oldData = await pool.query(
+  `SELECT * FROM telegram_users WHERE id = $1`,
+  [id]
+);
+
     // ✅ ADMIN can delete ANY participant
     if (role === "ADMIN") {
       query = `
@@ -285,6 +390,37 @@ export const deleteParticipant = async (req: AuthRequest, res: Response) => {
     if (result.rowCount === 0) {
       return res.status(404).json({ message: "Participant not found" });
     }
+
+    // ✅ AUDIT LOG
+if (role === "ADMIN") {
+  await createAuditLog({
+    adminId: req.user?.id,
+
+    adminName: req.user?.name || "ADMIN",
+
+    adminRole: req.user?.role || "ADMIN",
+
+    action: "DELETE",
+
+    module: "TELEGRAM_CLIENT",
+
+    targetEntity:
+      oldData.rows[0]?.telegram_client_name ||
+      oldData.rows[0]?.telegram_user_id,
+
+    targetType: "CLIENT",
+
+    description: "Admin deleted Telegram client",
+
+    status: "SUCCESS",
+
+    ipAddress: getClientIp(req),
+
+    device: req.headers["user-agent"] as string,
+
+    oldValue: oldData.rows[0],
+  });
+}
 
     return res.json({
       message: "Participant deleted successfully",
@@ -669,14 +805,73 @@ export const saveParticipantRA = async (
       }
 
       telegramUser = foundUser;
-    } catch (telegramError) {
-      console.error("TELEGRAM ERROR:", telegramError);
+    } catch (telegramError: any) {
 
-      return res.status(404).json({
-        success: false,
-        message: "Invalid Telegram username or inaccessible user",
-      });
-    }
+  console.error("❌ TELEGRAM ERROR:", telegramError);
+
+  try {
+
+    console.log("🔥 SAVING FAILED AUDIT LOG");
+
+    await createAuditLog({
+      adminId: req.user?.id,
+
+      adminName:
+        req.user?.name ||
+        req.user?.email ||
+        `RA_${req.user?.id}`,
+
+      adminRole:
+        req.user?.role || "RESEARCH_ANALYST",
+
+      action: "ADD",
+
+      module: "TELEGRAM_CLIENT",
+
+      targetEntity:
+        telegram_client_name || "UNKNOWN",
+
+      targetType: "CLIENT", // ✅ IMPORTANT FIX
+
+      description:
+        "RA failed to add Telegram client",
+
+      status: "FAILED",
+
+      reason:
+        telegramError?.message ||
+        telegramError?.errorMessage ||
+        "Telegram user not found",
+
+      ipAddress: getClientIp(req),
+
+      device:
+        (req.headers["user-agent"] as string) ||
+        "Unknown Device",
+
+      oldValue: null,
+
+      newValue: {
+        attempted_username: telegram_client_name,
+      },
+    });
+
+    console.log("✅ FAILED AUDIT LOG SAVED");
+
+  } catch (auditErr: any) {
+
+    console.error(
+      "❌ AUDIT LOG FAILED FULL:",
+      auditErr
+    );
+  }
+
+  return res.status(404).json({
+    success: false,
+    message:
+      "Invalid Telegram username or inaccessible user",
+  });
+}
 
     // ✅ Extract data
     const telegramUserId = telegramUser.id.toString();
@@ -717,19 +912,83 @@ if (phone && typeof phone === "string" && !phone.startsWith("+")) {
       userId,
     ]);
 
+    // ✅ AUDIT LOG FOR RA TELEGRAM CLIENT ADD
+await createAuditLog({
+  adminId: req.user?.id,
+
+  // RA username/email/name
+  adminName: req.user?.name || "RA",
+
+  // RA role
+  adminRole: req.user?.role || "RESEARCH_ANALYST",
+
+  action: "ADD",
+
+  module: "TELEGRAM_CLIENT",
+
+  // Which client added
+  targetEntity: username || telegramUserId,
+
+  targetType: "RA",
+
+  description: `RA added Telegram client ${username}`,
+
+  status: "SUCCESS",
+
+  ipAddress: getClientIp(req),
+
+  device: req.headers["user-agent"] as string,
+
+  oldValue: null,
+
+  newValue: result.rows[0],
+});
+
     return res.status(200).json({
       success: true,
       message: "Participant saved successfully",
       data: result.rows[0],
     });
-  } catch (err: any) {
-    console.error("SAVE RA PARTICIPANT ERROR:", err);
+} catch (err: any) {
+  console.error("SAVE RA PARTICIPANT ERROR:", err);
 
-    return res.status(500).json({
-      success: false,
-      message: err.message || "Failed to save participant",
-    });
-  }
+  // ❌ FAILED AUDIT
+  await createAuditLog({
+    adminId: req.user?.id,
+
+    adminName: req.user?.name || "RA",
+
+    adminRole: req.user?.role || "RESEARCH_ANALYST",
+
+    action: "ADD",
+
+    module: "TELEGRAM_CLIENT",
+
+    targetEntity:
+      req.body?.telegram_client_name || "UNKNOWN",
+
+    targetType: "RA",
+
+    description: "RA failed to add Telegram client",
+
+    status: "FAILED",
+
+    reason: err.message || "Failed to save participant",
+
+    ipAddress: getClientIp(req),
+
+    device: req.headers["user-agent"] as string,
+
+    oldValue: null,
+
+    newValue: null,
+  });
+
+  return res.status(500).json({
+    success: false,
+    message: err.message || "Failed to save participant",
+  });
+}
 };
 
 export const getMyParticipants = async (

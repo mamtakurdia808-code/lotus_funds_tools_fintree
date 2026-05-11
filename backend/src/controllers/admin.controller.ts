@@ -4,8 +4,36 @@ import bcrypt from "bcrypt";
 import { sendApprovalMail } from "../config/mailer";
 import { v4 as uuidv4 } from "uuid";
 import crypto from "crypto";
+import { AuthRequest } from "../middlewares/auth.middleware";
+import { createAuditLog } from "../utils/auditLogger";
 
-export const approveUser = async (req: Request, res: Response) => {
+const getClientIp = (req: Request) => {
+  let ip =
+    (req.headers["x-forwarded-for"] as string) ||
+    req.socket.remoteAddress ||
+    req.ip ||
+    "Unknown";
+
+  // if multiple IPs exist
+  if (ip.includes(",")) {
+    ip = ip.split(",")[0].trim();
+  }
+
+  // convert IPv6 localhost
+  if (ip === "::1") {
+    ip = "127.0.0.1";
+  }
+
+  // remove IPv6 prefix
+  if (ip.startsWith("::ffff:")) {
+    ip = ip.replace("::ffff:", "");
+  }
+
+  return ip;
+};
+
+
+export const approveUser = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
 
   try {
@@ -131,6 +159,41 @@ export const approveUser = async (req: Request, res: Response) => {
 
     // ================= COMMIT =================
     await client.query("COMMIT");
+
+    // ================= AUDIT LOG =================
+
+await createAuditLog({
+  adminId: req.user?.id,
+
+  adminName: req.user?.name || "ADMIN",
+
+  adminRole: req.user?.role || "ADMIN",
+
+  action: "APPROVE",
+
+  module: type,
+
+  targetEntity: email,
+
+  targetType: type,
+
+  description: `${type} approved by admin`,
+
+  status: "SUCCESS",
+
+ ipAddress: getClientIp(req),
+
+  device: req.headers["user-agent"] as string,
+
+  oldValue: {
+    status: "pending",
+  },
+
+  newValue: {
+    status: "approved",
+    user_id: finalUserId,
+  },
+});
 
     // ================= SEND EMAIL =================
     const link = `${process.env.FRONTEND_URL}/set-password?token=${token}`;

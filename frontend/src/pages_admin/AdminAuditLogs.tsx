@@ -12,26 +12,36 @@ import {
   Paper,
 } from '@mui/material';
 import { Search, Download } from '@mui/icons-material';
+import axios from "axios";
 
 import AuditLogTable from './Admin common/AuditLogTable';
 
 interface AuditLog {
-  logId: string;
-  timestamp: string;
-  adminName: string;
-  adminRole: 'SUPER_ADMIN' | 'ADMIN';
+  log_id: string;
+  created_at: string;
+
+  admin_name: string;
+  admin_role: string;
+
   action: string;
-  module: 'RA' | 'Broker' | 'Billing' | 'Subscription';
-  targetEntity: string;
-  targetType: 'RA' | 'BROKER' | 'USER' | 'SUBSCRIPTION';
+  module: string;
+
+  target_entity: string;
+  target_type: string;
+
   description: string;
-  status: 'SUCCESS' | 'FAILED';
+
+  status: string;
+
   reason?: string;
-  ipAddress: string;
-  device: string;
-  oldValue?: string;
-  newValue?: string;
-  createdAt: string;
+
+  ip_address: string;
+
+  device?: string;
+
+  old_value?: any;
+
+  new_value?: any;
 }
 
 const AdminAuditLogs: React.FC = () => {
@@ -42,131 +52,96 @@ const AdminAuditLogs: React.FC = () => {
   const [moduleFilter, setModuleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  useEffect(() => {
-    const sampleLogs: AuditLog[] = [
-      {
-        logId: '550e8400-e29b-41d4-a716-446655440000',
-        timestamp: '2024-01-15T10:30:00Z',
-        adminName: 'John Doe',
-        adminRole: 'ADMIN',
-        action: 'APPROVE',
-        module: 'RA',
-        targetEntity: 'Jane Smith',
-        targetType: 'RA',
-        description: 'Approved RA registration after verification of credentials',
-        status: 'SUCCESS',
-        oldValue: '{"status": "PENDING", "verified": false}',
-        newValue: '{"status": "ACTIVE", "verified": true, "approvedBy": "John Doe"}',
-        ipAddress: '192.168.1.1',
-        device: 'Chrome/Windows',
-        createdAt: '2024-01-15T10:30:00Z',
-      },
-      {
-        logId: '550e8400-e29b-41d4-a716-446655440001',
-        timestamp: '2024-01-15T11:45:00Z',
-        adminName: 'Sarah Johnson',
-        adminRole: 'SUPER_ADMIN',
-        action: 'REJECT',
-        module: 'Broker',
-        targetEntity: 'Mike Wilson',
-        targetType: 'BROKER',
-        description: 'Rejected broker application due to missing documentation',
-        status: 'FAILED',
-        reason: 'Incomplete documentation - missing KYC documents and proof of address',
-        oldValue: '{"status": "PENDING", "documents": ["license"]}',
-        newValue: '{"status": "REJECTED", "documents": ["license"], "rejectionReason": "Missing KYC"}',
-        ipAddress: '192.168.1.2',
-        device: 'Safari/Mac',
-        createdAt: '2024-01-15T11:45:00Z',
-      },
-      {
-        logId: '550e8400-e29b-41d4-a716-446655440002',
-        timestamp: '2024-01-15T14:20:00Z',
-        adminName: 'Robert Brown',
-        adminRole: 'ADMIN',
-        action: 'VERIFY',
-        module: 'Billing',
-        targetEntity: 'Alice Davis',
-        targetType: 'USER',
-        description: 'Verified and updated billing information for user account',
-        status: 'SUCCESS',
-        oldValue: '{"billingStatus": "UNVERIFIED", "paymentMethod": null}',
-        newValue: '{"billingStatus": "VERIFIED", "paymentMethod": "credit_card", "lastVerified": "2024-01-15T14:20:00Z"}',
-        ipAddress: '192.168.1.3',
-        device: 'Firefox/Windows',
-        createdAt: '2024-01-15T14:20:00Z',
-      },
-      {
-        logId: '550e8400-e29b-41d4-a716-446655440003',
-        timestamp: '2024-01-15T16:00:00Z',
-        adminName: 'Emily Chen',
-        adminRole: 'SUPER_ADMIN',
-        action: 'SUSPEND',
-        module: 'Subscription',
-        targetEntity: 'David Martinez',
-        targetType: 'SUBSCRIPTION',
-        description: 'Suspended user subscription due to policy violation',
-        status: 'SUCCESS',
-        reason: 'Terms of service violation - multiple user complaints received',
-        oldValue: '{"status": "ACTIVE", "suspensionCount": 0}',
-        newValue: '{"status": "SUSPENDED", "suspensionCount": 1, "suspensionReason": "ToS violation"}',
-        ipAddress: '192.168.1.4',
-        device: 'Chrome/Linux',
-        createdAt: '2024-01-15T16:00:00Z',
-      },
-    ];
-    setLogs(sampleLogs);
-  }, []);
+useEffect(() => {
+
+  const fetchAuditLogs = async () => {
+    try {
+
+      const token = localStorage.getItem("token");
+
+      const API_URL = import.meta.env.VITE_API_URL;
+
+      const response = await axios.get(
+        `${API_URL}/api/audit-logs`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setLogs(response.data.logs || []);
+
+    } catch (error) {
+      console.error("Failed to fetch audit logs:", error);
+      setLogs([]);
+    }
+  };
+
+  fetchAuditLogs();
+
+}, []);
 
   const filterLogs = () => {
-    return logs.filter(log => {
+    return (logs || []).filter(log => {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const matchesSearch = 
-          log.adminName.toLowerCase().includes(query) ||
-          log.action.toLowerCase().includes(query) ||
-          log.module.toLowerCase().includes(query) ||
-          log.targetEntity.toLowerCase().includes(query) ||
-          log.description.toLowerCase().includes(query) ||
-          log.ipAddress.includes(query);
+const matchesSearch =
+  log.admin_name?.toLowerCase().includes(query) ||
+  log.action?.toLowerCase().includes(query) ||
+  log.module?.toLowerCase().includes(query) ||
+  log.target_entity?.toLowerCase().includes(query) ||
+  log.description?.toLowerCase().includes(query) ||
+  log.ip_address?.includes(query);
         if (!matchesSearch) return false;
       }
 
       // Date filter
-      if (dateFilter) {
-        const logDate = new Date(log.timestamp);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        switch (dateFilter) {
-          case 'today': {
-            const todayStart = new Date(today);
-            const todayEnd = new Date(today);
-            todayEnd.setHours(23, 59, 59, 999);
-            if (logDate < todayStart || logDate > todayEnd) return false;
-            break;
-          }
-          case 'week': {
-            const weekAgo = new Date(today);
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            if (logDate < weekAgo) return false;
-            break;
-          }
-          case 'month': {
-            const monthAgo = new Date(today);
-            monthAgo.setMonth(monthAgo.getMonth() - 1);
-            if (logDate < monthAgo) return false;
-            break;
-          }
-        }
-      }
+if (dateFilter) {
+  const logDate = new Date(log.created_at);
+  const now = new Date();
 
+  switch (dateFilter) {
+    case 'today': {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (logDate < today) return false;
+      break;
+    }
+
+    case 'week': {
+      const weekAgo = new Date();
+      weekAgo.setDate(now.getDate() - 7);
+
+      if (logDate < weekAgo) return false;
+      break;
+    }
+
+    case 'month': {
+      const monthAgo = new Date();
+      monthAgo.setMonth(now.getMonth() - 1);
+
+      if (logDate < monthAgo) return false;
+      break;
+    }
+  }
+}
       // User filter
-      if (userFilter) {
-        if (userFilter === 'admin' && log.adminRole !== 'ADMIN') return false;
-        if (userFilter === 'superadmin' && log.adminRole !== 'SUPER_ADMIN') return false;
-      }
+    if (userFilter) {
+  if (
+    userFilter === "admin" &&
+    log.admin_role !== "ADMIN"
+  )
+    return false;
+
+  if (
+    userFilter === "superadmin" &&
+    log.admin_role !== "SUPER_ADMIN"
+  )
+    return false;
+}
 
       // Module filter
       if (moduleFilter && log.module !== moduleFilter) return false;
@@ -241,6 +216,7 @@ const AdminAuditLogs: React.FC = () => {
                 <MenuItem value="">All Modules</MenuItem>
                 <MenuItem value="RA">RA</MenuItem>
                 <MenuItem value="Broker">Broker</MenuItem>
+                <MenuItem value="TELEGRAM_CLIENT">Telegram</MenuItem>
                 <MenuItem value="Billing">Billing</MenuItem>
                 <MenuItem value="Subscription">Subscription</MenuItem>
               </Select>
@@ -258,6 +234,7 @@ const AdminAuditLogs: React.FC = () => {
             </FormControl>
           </Grid>
 
+{/* 
 <Grid item xs={6} sm={6} md={2}>
   <Button
     variant="outlined"
@@ -272,6 +249,7 @@ const AdminAuditLogs: React.FC = () => {
     Export
   </Button>
 </Grid>
+*/}
         </Grid>
       </Paper>
 

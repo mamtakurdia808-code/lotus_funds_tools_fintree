@@ -18,6 +18,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { SidebarItem } from "../../types/sidebar";
 import { useState } from "react";
+import axios from "axios";
 
 
 export interface SidebarProps {
@@ -54,9 +55,30 @@ const Sidebar = ({ open = false, onClose, items }: SidebarProps) => {
 
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    const role = localStorage.getItem("role"); // read role before clearing
+const handleLogout = async () => {
+  try {
+    const token = localStorage.getItem("token");
 
+    const API_URL =
+      import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+    await axios.post(
+      `${API_URL}/api/auth/logout`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+  } catch (error) {
+    console.error("Logout error:", error);
+  } finally {
+
+    const role = localStorage.getItem("role");
+
+    // clear storage AFTER audit log is saved
     localStorage.clear();
 
     if (role === "ADMIN" || role === "EMPLOYEE") {
@@ -64,7 +86,8 @@ const Sidebar = ({ open = false, onClose, items }: SidebarProps) => {
     } else {
       navigate("/login", { replace: true });
     }
-  };
+  }
+};
 
 
   const content = (
