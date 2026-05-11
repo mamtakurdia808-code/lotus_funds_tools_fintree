@@ -1,5 +1,5 @@
 import express from "express";
-import { login, getMe, sendOtp, verifyOtp } from "../controllers/auth.controller";
+import { login, logout , getMe, sendOtp, verifyOtp } from "../controllers/auth.controller";
 
 import { authenticate } from "../middlewares/auth.middleware";
 import { changeAdminPassword } from "../controllers/auth.controller";
@@ -11,6 +11,8 @@ router.post("/login", (req, res, next) => {
   console.log("🔥 LOGIN ROUTE HIT");
   next();
 }, login);
+
+router.post("/logout", authenticate, logout);
 router.get("/me", authenticate, getMe);
 router.post("/request-otp", sendOtp);
 router.post("/verify-otp-and-set-password", verifyOtp);

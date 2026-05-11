@@ -8,8 +8,11 @@ import registrationRoutes from "./routes/registration.routes";
 import adminRoutes from "./routes/admin.routes";
 import path from "path";
 import telegramRoutes from "./routes/telegram.routes";
+import auditRoutes from "./routes/audit.routes";
 
 const app = express();
+
+app.set("trust proxy", true);
 console.log("🔥 APP FILE LOADED");
 
 const allowedOrigins = [
@@ -59,5 +62,8 @@ async function startServer() {}
 app.get("/check", (req, res) => {
   res.send("APP WORKING");
 });
+
+
+app.use("/api/audit-logs", auditRoutes);
 
 export default app;

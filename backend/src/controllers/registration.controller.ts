@@ -5,6 +5,35 @@ import { pool } from "../db";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
+import { createAuditLog } from "../utils/auditLogger";
+
+
+/* ================= GET CLIENT IP ================= */
+
+const getClientIp = (req: Request) => {
+  let ip =
+    (req.headers["x-forwarded-for"] as string) ||
+    req.socket.remoteAddress ||
+    req.ip ||
+    "Unknown";
+
+  // if multiple IPs exist
+  if (ip.includes(",")) {
+    ip = ip.split(",")[0].trim();
+  }
+
+  // convert IPv6 localhost
+  if (ip === "::1") {
+    ip = "127.0.0.1";
+  }
+
+  // remove IPv6 prefix
+  if (ip.startsWith("::ffff:")) {
+    ip = ip.replace("::ffff:", "");
+  }
+
+  return ip;
+};
 
 /* ================= GET ALL REGISTRATIONS ================= */
 export const getAllRegistrations = async (req: Request, res: Response) => {
@@ -28,7 +57,12 @@ export const getAllRegistrations = async (req: Request, res: Response) => {
         tu.telegram_user_id,
         tu.telegram_client_name
       FROM ra_details rd
-      LEFT JOIN telegram_users tu ON tu.user_id = rd.user_id
+      LEFT JOIN LATERAL (
+  SELECT telegram_user_id, telegram_client_name
+  FROM telegram_users
+  WHERE telegram_users.user_id = rd.user_id
+  LIMIT 1
+) tu ON true
       ORDER BY rd.created_at DESC
     `);
 
@@ -334,6 +368,35 @@ export const approveRegistration = async (req: Request, res: Response) => {
 
     await client.query("COMMIT");
 
+    await createAuditLog({
+  adminId: (req as AuthRequest).user?.id,
+
+  adminName: (req as AuthRequest).user?.name || "ADMIN",
+
+  adminRole: (req as AuthRequest).user?.role || "ADMIN",
+
+  action: "APPROVE",
+
+  module: "RA",
+
+  targetEntity: username,
+
+  targetType: "RA",
+
+  description: "RA approved by admin",
+
+  status: "SUCCESS",
+
+ ipAddress: getClientIp(req),
+
+  device: req.headers["user-agent"] as string,
+
+  newValue: {
+    status: "approved",
+    username,
+  },
+});
+
     return res.status(200).json({
       message: "Approved",
       username,
@@ -352,7 +415,7 @@ export const approveRegistration = async (req: Request, res: Response) => {
 
 
 /* ================= REJECT USER (RA/BROKER) ================= */
-export const rejectUser = async (req: Request, res: Response) => {
+export const rejectUser = async (req: AuthRequest, res: Response) => {
   const client = await pool.connect();
 
   try {
@@ -433,6 +496,43 @@ export const rejectUser = async (req: Request, res: Response) => {
       );
     }
 
+    /* ================= CREATE AUDIT LOG ================= */
+
+await createAuditLog({
+  adminId: req.user?.id || undefined,
+
+  adminName: req.user?.name || "ADMIN",
+
+  adminRole: req.user?.role || "ADMIN",
+
+  action: "REJECT",
+
+  module: lowerType.toUpperCase(),
+
+  targetEntity: email,
+
+  targetType: lowerType.toUpperCase(),
+
+  description: `${lowerType.toUpperCase()} rejected by admin`,
+
+  status: "SUCCESS",
+
+  reason: reason,
+
+ipAddress: getClientIp(req),
+
+  device: req.headers["user-agent"] as string | undefined,
+
+  oldValue: {
+    status: "pending",
+  },
+
+  newValue: {
+    status: "rejected",
+    rejection_reason: reason,
+  },
+});
+
     await client.query("COMMIT");
 
     return res.status(200).json({
@@ -511,7 +611,13 @@ export const updateRARegistration = async (req: AuthRequest, res: Response) => {
     const data = req.body || {};
     const files = req.files as any;
 
+    const oldData = await pool.query(
+  `SELECT * FROM ra_details WHERE id = $1`,
+  [id]
+);
+
     const result = await pool.query(
+      
       `
       UPDATE ra_details
       SET
@@ -533,6 +639,50 @@ export const updateRARegistration = async (req: AuthRequest, res: Response) => {
       ]
     );
 
+    // ================= UPDATE LOGIN EMAIL =================
+
+if (result.rows[0]?.user_id) {
+  await pool.query(
+    `
+    UPDATE users
+    SET email = $1
+    WHERE id = $2
+    `,
+    [
+      data.email.trim().toLowerCase(),
+      result.rows[0].user_id,
+    ]
+  );
+}
+
+ await createAuditLog({
+  adminName: req.user?.name || "ADMIN",
+
+  adminId: req.user?.id,
+
+  adminRole: req.user?.role || "ADMIN",
+
+  action: "UPDATE",
+
+  module: "RA",
+
+  targetEntity: data.email,
+
+  targetType: "RA",
+
+  description: "RA profile updated by admin",
+
+  status: "SUCCESS",
+
+  ipAddress: getClientIp(req),
+
+  device: req.headers["user-agent"],
+
+  oldValue: oldData.rows[0],
+
+  newValue: result.rows[0],
+});
+
     return res.status(200).json({
       success: true,
       data: result.rows[0],
@@ -546,11 +696,27 @@ export const updateRARegistration = async (req: AuthRequest, res: Response) => {
 
 /* ================= UPDATE Broker REGISTRATION ================= */
 
-export const updateBroker = async (req: Request, res: Response) => {
+export const updateBroker = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const data = req.body;
     const files = req.files as any;
+
+      /* ================= GET OLD DATA ================= */
+
+    const oldData = await pool.query(
+      `SELECT * FROM broker_details WHERE id = $1`,
+      [id]
+    );
+
+    if (oldData.rowCount === 0) {
+      return res.status(404).json({
+        message: "Broker not found",
+      });
+    }
+
+
+    /* ================= UPDATE QUERY ================= */
 
     const query = `
       UPDATE broker_details SET
@@ -659,6 +825,51 @@ export const updateBroker = async (req: Request, res: Response) => {
     ];
 
     const result = await pool.query(query, values);
+
+    // ================= UPDATE LOGIN EMAIL =================
+
+if (result.rows[0]?.user_id) {
+  await pool.query(
+    `
+    UPDATE users
+    SET email = $1
+    WHERE id = $2
+    `,
+    [
+      data.email.trim().toLowerCase(),
+      result.rows[0].user_id,
+    ]
+  );
+}
+
+        /* ================= CREATE AUDIT LOG ================= */
+await createAuditLog({
+  adminId: req.user?.id || undefined,
+
+  adminName: req.user?.name || "ADMIN",
+
+  adminRole: req.user?.role || "ADMIN",
+
+  action: "UPDATE",
+
+  module: "BROKER",
+
+  targetEntity: data.email,
+
+  targetType: "BROKER",
+
+  description: `Broker profile updated: ${data.legal_name}`,
+
+  status: "SUCCESS",
+
+  ipAddress: getClientIp(req),
+
+  device: req.headers["user-agent"] as string,
+
+  oldValue: oldData.rows[0],
+
+  newValue: result.rows[0],
+});
 
     if (result.rowCount === 0) {
       return res.status(404).json({ message: "Broker not found" });
