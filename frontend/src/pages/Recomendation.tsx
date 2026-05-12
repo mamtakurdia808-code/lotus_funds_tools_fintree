@@ -1120,8 +1120,15 @@ maxWidth: "100%",
         </Box>
 
         {/* Script Row */}
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 1 }}>
-          <Box sx={{ position: 'relative', display: 'flex', flexGrow: 1 }}>
+<Box
+  sx={{
+    display: "flex",
+    flexDirection: { xs: "column", sm: "row" }, 
+    gap: 1,
+    mb: 1,
+    width: "100%",
+  }}
+>          <Box sx={{ position: 'relative', display: 'flex', flexGrow: 1 }}>
             {suggestion && suggestion.toLowerCase().startsWith(inputValue.toLowerCase()) && (
               <Box
                 sx={{
