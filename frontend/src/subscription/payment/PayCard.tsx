@@ -56,10 +56,75 @@ interface PayCardProps {
     onBack: () => void;
     planName: string;
     planPrice: string;
+    resetToken?: string; // Add this to your props
 }
 
-export default function PayCard({ open, onClose, onBack, planName, planPrice }: PayCardProps) {
+export default function PayCard({ open, onClose, onBack, planName, planPrice, resetToken }: PayCardProps) {
     const [selectedState, setSelectedState] = useState<string>("Maharashtra");
+    
+    // 1. Add states for inputs
+    const [cardNumber, setCardNumber] = useState("");
+    const [expiry, setExpiry] = useState("");
+    const [cvv, setCvv] = useState("");
+    const [cardHolder, setCardHolder] = useState("");
+
+    const handleCardPayment = async () => {
+        const numericPrice = parseInt(planPrice.replace(/[^0-9]/g, "")) || 0;
+
+        try {
+            // 2. Create Order
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/create-order`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    amount: numericPrice, 
+                    planName, 
+                    resetToken: resetToken || "test_manual_card" 
+                }),
+            });
+
+            const order = await response.json();
+
+            // 3. Razorpay Options
+            const options = {
+                key: order.key_id,
+                amount: order.amount,
+                currency: "INR",
+                name: "Fintree",
+                order_id: order.id,
+                // Prefill helps the user so they don't type twice
+                prefill: {
+                    name: cardHolder,
+                    method: 'card',
+                },
+                handler: async function (response: any) {
+                    const verifyRes = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/verify`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature,
+                            resetToken: resetToken,
+                            amountPaid: numericPrice
+                        }),
+                    });
+
+                    if (verifyRes.ok) {
+                        window.location.href = "/dashboard?success=true";
+                    }
+                },
+                theme: { color: "#1a73e8" },
+            };
+
+            const rzp = new (window as any).Razorpay(options);
+            rzp.open();
+
+        } catch (error) {
+            console.error("Card Payment Error:", error);
+            alert("Payment initialization failed.");
+        }
+    };
 
     return (
         <Dialog
@@ -92,6 +157,8 @@ export default function PayCard({ open, onClose, onBack, planName, planPrice }: 
                     fullWidth
                     label="Card number"
                     size="small"
+                    value={cardNumber}
+                    onChange={(e) => setCardNumber(e.target.value)}
                     InputProps={{
                         startAdornment: (
                             <InputAdornment position="start">
@@ -107,26 +174,22 @@ export default function PayCard({ open, onClose, onBack, planName, planPrice }: 
                 />
 
                 <Stack direction="row" spacing={2} mt={3}>
-                    <TextField fullWidth size="small" placeholder="MM/YY" />
+                    <TextField 
+                        fullWidth size="small" placeholder="MM/YY" 
+                        value={expiry}
+                        onChange={(e) => setExpiry(e.target.value)}
+                    />
                     <TextField
-                        fullWidth
-                        size="small"
-                        placeholder="CVV"
-                        InputProps={{
-                            endAdornment: (
-                                <InputAdornment position="end">
-                                    <HelpOutlineIcon fontSize="small" />
-                                </InputAdornment>
-                            ),
-                        }}
+                        fullWidth size="small" placeholder="CVV"
+                        value={cvv}
+                        onChange={(e) => setCvv(e.target.value)}
                     />
                 </Stack>
 
                 <TextField
-                    fullWidth
-                    size="small"
-                    label="Cardholder name"
-                    sx={{ mt: 3 }}
+                    fullWidth size="small" label="Cardholder name" sx={{ mt: 3 }}
+                    value={cardHolder}
+                    onChange={(e) => setCardHolder(e.target.value)}
                 />
 
                 <Box mt={3}>
@@ -175,13 +238,10 @@ export default function PayCard({ open, onClose, onBack, planName, planPrice }: 
                 <Button
                     fullWidth
                     variant="contained"
-                    sx={{
-                        borderRadius: "24px",
-                        textTransform: "none",
-                        height: 44,
-                    }}
+                    onClick={handleCardPayment} // 4. Attach the function
+                    sx={{ borderRadius: "24px", textTransform: "none", height: 44, mt: 2 }}
                 >
-                    Save card
+                    Pay {planPrice}
                 </Button>
             </Box>
         </Dialog>
