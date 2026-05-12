@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Box, Typography, ToggleButtonGroup, ToggleButton, Chip } from "@mui/material";
 import PlanCard, { PlanFeature, PlanBenefit } from "./PlanCard";
+import PaymentMethod from "./payment/PaymentMethod";
 
 interface PlanConfig {
   planName: string;
@@ -218,6 +219,18 @@ const SubscriptionPage: React.FC = () => {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">(
     "monthly"
   );
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<{ planName: string; price: string } | null>(null);
+
+  const handleGetStarted = (planName: string, price: string) => {
+    setSelectedPlan({ planName, price });
+    setPaymentOpen(true);
+  };
+
+  const handlePaymentClose = () => {
+    setPaymentOpen(false);
+    setSelectedPlan(null);
+  };
 
   const handleBillingChange = (
     _: React.MouseEvent<HTMLElement>,
@@ -343,9 +356,21 @@ const SubscriptionPage: React.FC = () => {
             key={plan.planName}
             {...plan}
             isAnnual={billingCycle === "annual"}
+            onGetStarted={() => handleGetStarted(
+              plan.planName,
+              billingCycle === "annual" ? plan.annualPrice : plan.monthlyPrice
+            )}
           />
         ))}
       </Box>
+
+      {/* Payment Method Dialog */}
+      <PaymentMethod
+        open={paymentOpen}
+        onClose={handlePaymentClose}
+        planName={selectedPlan?.planName || ""}
+        planPrice={selectedPlan?.price || ""}
+      />
 
       {/* Footer */}
       <Box sx={{ textAlign: "center", mt: 5 }}>
