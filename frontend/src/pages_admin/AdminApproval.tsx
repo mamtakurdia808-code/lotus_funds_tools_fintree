@@ -28,7 +28,7 @@ type AdminRow = {
   id: string;
   name: string;
   phone: string;
-  type: "RA" | "Broker";
+  type: "RA" | "BROKER";
 
   profile?: string;
   pan?: string;
@@ -162,7 +162,7 @@ const AdminApproval = () => {
 
         const formatted: AdminRow[] = data.map((item: any) => ({
   id: String(item.id),
-  type: "Broker", // ✅ MUST match type exactly
+  type: "BROKER", // ✅ MUST match type exactly
 
   name: item.legal_name || "N/A",
   phone: item.mobile || "",
@@ -530,6 +530,7 @@ const openFile = (file?: string | string[]) => {
               variant="contained"
               color="success"
               fullWidth
+              disabled={selectedRA.status.toLowerCase() === "approved"}
               onClick={() => {
                 setSelectedId(selectedRA.id);
                 setConfirmType("approve");
@@ -784,10 +785,12 @@ const openFile = (file?: string | string[]) => {
   />
 )}
           <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
+            
             <Button
               variant="contained"
               color="success"
               fullWidth
+              disabled={selectedBroker.status.toLowerCase() === "approved"}
               onClick={() => {
                 setSelectedId(selectedBroker.id);
                 setConfirmType("approve");
