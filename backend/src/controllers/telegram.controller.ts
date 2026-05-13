@@ -724,19 +724,46 @@ export const verifyOtp = async (req: AuthRequest, res: Response) => {
 };
 
 // GET /api/telegram/status
-export const getTelegramStatus = async (req: AuthRequest, res: Response) => {
+// GET /api/telegram/status
+export const getTelegramStatus = async (
+  req: AuthRequest,
+  res: Response
+) => {
   try {
     const result = await pool.query(
       `SELECT telegram_session FROM users WHERE id = $1`,
       [req.user!.id]
     );
 
-    const isConnected = !!result.rows[0]?.telegram_session;
+    const telegramSession =
+      result.rows[0]?.telegram_session;
 
-    return res.json({ connected: isConnected });
+    // ✅ IMPORTANT FIX
+    const isConnected =
+      !!telegramSession &&
+      telegramSession !== "null" &&
+      telegramSession.trim() !== "";
+
+    console.log(
+      "TELEGRAM SESSION:",
+      telegramSession
+    );
+
+    console.log(
+      "CONNECTED STATUS:",
+      isConnected
+    );
+
+    return res.json({
+      connected: isConnected,
+    });
 
   } catch (err) {
-    return res.status(500).json({ message: "Error" });
+    console.error("STATUS ERROR:", err);
+
+    return res.status(500).json({
+      connected: false,
+    });
   }
 };
 
