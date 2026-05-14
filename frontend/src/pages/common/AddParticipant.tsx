@@ -91,26 +91,21 @@ const AddParticipant: React.FC = () => {
   return (
     <Box
       sx={{
-        width: "95%",
-        mx: "auto",
         mt: 4,
-        ml: 2,
+        width: "100%",
       }}
     >
-      <Typography fontWeight={600}>
+      <Typography fontWeight={700} sx={{ fontSize: 18 }}>
         View Participant
       </Typography>
 
       {/* Participants Section */}
       <Box sx={{ mt: 2 }}>
-        <Typography fontWeight={600} sx={{ mb: 1 }}>
+        <Typography fontWeight={700} sx={{ mb: 1, fontSize: 16 }}>
           Participants
         </Typography>
 
-        <Typography
-          color="text.secondary"
-          sx={{ mb: 1, mt: 1 }}
-        >
+        <Typography color="text.secondary" sx={{ mb: 1, mt: 1, fontSize: 14 }}>
           Search User
         </Typography>
 
@@ -122,7 +117,11 @@ const AddParticipant: React.FC = () => {
           onChange={(e) =>
             setSearchQuery(e.target.value)
           }
-          sx={{ mb: 2 }}
+          sx={{
+            mb: 2,
+            "& .MuiInputLabel-root": { fontSize: 14 },
+            "& .MuiInputBase-input": { fontSize: 15 },
+          }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -202,10 +201,7 @@ const AddParticipant: React.FC = () => {
 
       {/* Add New Participant */}
       <Box sx={{ mt: 3 }}>
-        <Typography
-          fontWeight={600}
-          sx={{ mb: 1 }}
-        >
+        <Typography fontWeight={700} sx={{ mb: 1, fontSize: 16 }}>
           Add New Participant
         </Typography>
 
