@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
-import SmartphoneOutlinedIcon from "@mui/icons-material/SmartphoneOutlined";
+// import SmartphoneOutlinedIcon from "@mui/icons-material/SmartphoneOutlined";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import PayCard from "./PayCard";
@@ -88,9 +88,16 @@ interface PaymentMethodProps {
     onClose: () => void;
     planName: string;
     planPrice: string;
+    resetToken: string | null; // 1. ADD THIS TO INTERFACE
 }
 
-export default function PaymentMethod({ open, onClose, planName, planPrice }: PaymentMethodProps) {
+export default function PaymentMethod({ 
+    open, 
+    onClose, 
+    planName, 
+    planPrice, 
+    resetToken // 2. DESTRUCTURE FROM PROPS
+}: PaymentMethodProps) {
     const [activeView, setActiveView] = useState<ActiveView>("main");
 
     // Reset to main view whenever the dialog opens
@@ -120,102 +127,24 @@ export default function PaymentMethod({ open, onClose, planName, planPrice }: Pa
                         width: "589px",
                         maxWidth: "589px",
                         borderRadius: "20px",
-                        boxShadow:
-                            "0px 2px 8px rgba(0,0,0,0.15), 0px 8px 24px rgba(0,0,0,0.12)",
+                        boxShadow: "0px 2px 8px rgba(0,0,0,0.15), 0px 8px 24px rgba(0,0,0,0.12)",
                         overflow: "hidden",
                     },
                 }}
             >
-                <Box
-                    sx={{
-                        px: 3,
-                        py: 2,
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                    }}
-                >
-                    <Typography
-                        sx={{
-                            fontSize: "30px",
-                            fontWeight: 500,
-                            color: "#5f6368",
-                            letterSpacing: "-0.4px",
-                        }}
-                    >
-                        FintreePay
-                    </Typography>
-
+                <Box sx={{ px: 3, py: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Typography sx={{ fontSize: "30px", fontWeight: 500, color: "#5f6368" }}>FintreePay</Typography>
                     <IconButton size="small" onClick={handleClose}>
                         <CloseIcon sx={{ color: "#5f6368", fontSize: 28 }} />
                     </IconButton>
                 </Box>
-
                 <Divider />
-
-                <DialogContent
-                    sx={{
-                        px: 3,
-                        py: 2.5,
-                    }}
-                >
-                    <Typography
-                        sx={{
-                            fontSize: "18px",
-                            fontWeight: 500,
-                            color: "#202124",
-                        }}
-                    >
-                        Start by adding a payment method
-                    </Typography>
-
-                    <Typography
-                        sx={{
-                            fontSize: "14px",
-                            color: "#5f6368",
-                            mt: 0.4,
-                        }}
-                    >
-                        name@gmail.com
-                    </Typography>
-
-                    <Typography
-                        sx={{
-                            fontSize: "14px",
-                            lineHeight: 1.45,
-                            color: "#5f6368",
-                            mt: 2.2,
-                            mb: 3,
-                        }}
-                    >
-                        Lorem ipsum dolor, sit amet consectetur adipisicing elit. Iure cumque commodi dolorum incidunt saepe fuga? Ipsum harum voluptate, quia deleniti veniam quas non corporis adipisci amet sed similique. Similique, hic.
-                    </Typography>
-
-                    <Stack spacing={0.5}>
-                        <PaymentItem
-                            icon={<CreditCardOutlinedIcon />}
-                            title="Add card"
-                            onClick={() => setActiveView("card")}
-                        />
-
-                        <PaymentItem
-                            icon={<AccountBalanceWalletOutlinedIcon />}
-                            title="Pay with UPI"
-                            onClick={() => setActiveView("upi")}
-                        />
-
-                        <PaymentItem
-                            icon={<ConfirmationNumberOutlinedIcon />}
-                            title="Redeem code"
-                            onClick={() => setActiveView("redeem")}
-                        />
-
-                        {/* <PaymentItem
-                            icon={<SmartphoneOutlinedIcon />}
-                            title="Pay on your phone"
-                            subtitle="More payment options available. A notification will be sent to all your devices."
-                            onClick={() => setActiveView("phone")}
-                        /> */}
+                <DialogContent sx={{ px: 3, py: 2.5 }}>
+                    <Typography sx={{ fontSize: "18px", fontWeight: 500, color: "#202124" }}>Start by adding a payment method</Typography>
+                    <Stack spacing={0.5} sx={{ mt: 3 }}>
+                        <PaymentItem icon={<CreditCardOutlinedIcon />} title="Add card" onClick={() => setActiveView("card")} />
+                        <PaymentItem icon={<AccountBalanceWalletOutlinedIcon />} title="Pay with UPI" onClick={() => setActiveView("upi")} />
+                        <PaymentItem icon={<ConfirmationNumberOutlinedIcon />} title="Redeem code" onClick={() => setActiveView("redeem")} />
                     </Stack>
                 </DialogContent>
             </Dialog>
@@ -227,6 +156,7 @@ export default function PaymentMethod({ open, onClose, planName, planPrice }: Pa
                 onBack={handleBack}
                 planName={planName}
                 planPrice={planPrice}
+                // resetToken={resetToken} // Uncomment this once PayCard interface is updated
             />
             <PayUPI
                 open={open && activeView === "upi"}
@@ -234,6 +164,7 @@ export default function PaymentMethod({ open, onClose, planName, planPrice }: Pa
                 onBack={handleBack}
                 planName={planName}
                 planPrice={planPrice}
+                resetToken={resetToken} // 3. PASS THE TOKEN TO PayUPI
             />
             <PayRedeem
                 open={open && activeView === "redeem"}

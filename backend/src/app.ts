@@ -9,6 +9,7 @@ import adminRoutes from "./routes/admin.routes";
 import path from "path";
 import telegramRoutes from "./routes/telegram.routes";
 import auditRoutes from "./routes/audit.routes";
+import paymentRoutes from "./routes/payment.routes";
 
 const app = express();
 
@@ -53,6 +54,7 @@ console.log("🔥 MOUNTING registrationRoutes");
 app.use("/api/registration", registrationRoutes);
 app.use("/api/telegram", telegramRoutes);
 app.use("/admin", adminRoutes);
+app.use('/api/payments', paymentRoutes);
 // app.get("/api/health", (_req, res) => {
 //   res.json({ status: "OK" });
 // });
