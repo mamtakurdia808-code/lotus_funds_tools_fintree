@@ -386,6 +386,8 @@ export const createErrata = async (
             ? existingCall.parent_call_id
             : existingCall.id;
 
+            
+
         // 3️⃣ Mark all previous versions as not latest
         await client.query(
             `UPDATE research_calls
@@ -492,6 +494,28 @@ export const createErrata = async (
 export const publishDraftCall = async (req: AuthRequest, res: Response) => {
     try {
         const { id } = req.params;
+         const userResult = await pool.query(
+      `
+      SELECT telegram_session
+      FROM users
+      WHERE id = $1
+      `,
+      [req.user!.id]
+    );
+
+    const telegramSession = userResult.rows[0]?.telegram_session;
+    console.log("TELEGRAM SESSION:", telegramSession);
+
+if (
+  !telegramSession ||
+  telegramSession === "null" ||
+  telegramSession.trim() === ""
+) {
+  return res.status(400).json({
+    message: "Telegram is not connected. Please connect Telegram first."
+  });
+}
+
 
         const result = await pool.query(
             `UPDATE research_calls
