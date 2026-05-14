@@ -83,10 +83,11 @@ export const TelegramSearch = ({ raId, onSaved }: TelegramSearchProps) => {
     setTelegramId("");
     setPhoneNumber("");
 
-  } catch (err: any) {
-    const errorMsg =
-      err.response?.data?.message ||
-      "Invalid Telegram details or server error";
+  } catch (err: unknown) {
+    const errorMsg = axios.isAxiosError(err)
+      ? err.response?.data?.message ||
+        "Invalid Telegram details or server error"
+      : "Invalid Telegram details or server error";
 
     alert(`❌ Error: ${errorMsg}`);
   } finally {
@@ -95,10 +96,10 @@ export const TelegramSearch = ({ raId, onSaved }: TelegramSearchProps) => {
 };
 
   return (
-    <Box sx={{ p: 1, maxWidth: 1000 }}>
+    <Box sx={{ p: 1, width: "100%" }}>
       <Paper
         elevation={0}
-        sx={{ p: 3, border: "1px solid #e0e0e0", borderRadius: 2 }}
+        sx={{ p: 3, border: "1px solid #e0e0e0", borderRadius: 2, width: "100%" }}
       >
         <Box
           sx={{
@@ -114,6 +115,10 @@ export const TelegramSearch = ({ raId, onSaved }: TelegramSearchProps) => {
             placeholder="@username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            sx={{
+              "& .MuiInputLabel-root": { fontSize: 14 },
+              "& .MuiInputBase-input": { fontSize: 15 },
+            }}
           />
 
           {/* Telegram ID */}
@@ -123,6 +128,10 @@ export const TelegramSearch = ({ raId, onSaved }: TelegramSearchProps) => {
             placeholder="123456789"
             value={telegramId}
             onChange={(e) => setTelegramId(e.target.value)}
+            sx={{
+              "& .MuiInputLabel-root": { fontSize: 14 },
+              "& .MuiInputBase-input": { fontSize: 15 },
+            }}
           />
 
           {/* Phone */}
@@ -133,6 +142,11 @@ export const TelegramSearch = ({ raId, onSaved }: TelegramSearchProps) => {
   value={phoneNumber}
   error={!!phoneError}
   helperText={phoneError}
+            sx={{
+              "& .MuiInputLabel-root": { fontSize: 14 },
+              "& .MuiInputBase-input": { fontSize: 15 },
+              "& .MuiFormHelperText-root": { fontSize: 13 },
+            }}
   onChange={(e) => {
     const value = e.target.value;
     setPhoneNumber(value);
@@ -159,6 +173,7 @@ export const TelegramSearch = ({ raId, onSaved }: TelegramSearchProps) => {
                 textTransform: "none",
                 px: 4,
                 fontWeight: "600",
+                fontSize: 15,
               }}
             >
               {loading ? "Saving..." : "Save Details"}
