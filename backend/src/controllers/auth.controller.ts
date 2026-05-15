@@ -172,7 +172,7 @@ export const login = async (req: Request, res: Response) => {
   name: user.username || user.email
 },
       process.env.JWT_SECRET as string,
-      { expiresIn: "1d" }
+      { expiresIn: "1m" }
     );
 
    if (
