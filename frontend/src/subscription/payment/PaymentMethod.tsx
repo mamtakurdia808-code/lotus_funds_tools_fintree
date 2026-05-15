@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
-import SmartphoneOutlinedIcon from "@mui/icons-material/SmartphoneOutlined";
+// import SmartphoneOutlinedIcon from "@mui/icons-material/SmartphoneOutlined";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import PayCard from "./PayCard";
